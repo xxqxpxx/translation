@@ -113,13 +113,84 @@ async createRequest(@Body() createRequestDto: CreateRequestDto) {
 }
 ```
 
+## Standardized API Architecture
+
+### API Response Format Standards
+All API endpoints must return responses in the standardized format:
+
+```typescript
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: {
+    message: string;
+    code: string;
+    field?: string;
+    details?: any;
+  };
+  meta?: {
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    timestamp?: string;
+    requestId?: string;
+  };
+}
+```
+
+### Error Handling Standards
+Comprehensive error codes for consistent error handling:
+
+```typescript
+enum ErrorCodes {
+  // Authentication errors
+  AUTH_INVALID_TOKEN = 'AUTH_001',
+  AUTH_EXPIRED_TOKEN = 'AUTH_002',
+  AUTH_INSUFFICIENT_PERMISSIONS = 'AUTH_003',
+  
+  // Validation errors
+  VALIDATION_REQUIRED_FIELD = 'VAL_001',
+  VALIDATION_INVALID_FORMAT = 'VAL_002',
+  VALIDATION_BUSINESS_RULE = 'VAL_003',
+  
+  // Business logic errors
+  REQUEST_NOT_AVAILABLE = 'REQ_001',
+  INTERPRETER_NOT_AVAILABLE = 'INT_001',
+  SESSION_ALREADY_STARTED = 'SES_001',
+  
+  // System errors
+  EXTERNAL_SERVICE_ERROR = 'SYS_001',
+  DATABASE_ERROR = 'SYS_002',
+  FILE_UPLOAD_ERROR = 'SYS_003'
+}
+```
+
+### Global Interceptors
+All controllers use these standardized interceptors:
+
+```typescript
+@UseInterceptors(
+  ResponseTransformInterceptor,  // Standardizes response format
+  SecurityInterceptor,           // Adds security headers
+  CacheInterceptor              // Handles caching where configured
+)
+@UseGuards(
+  JwtAuthGuard,                 // Authentication
+  RoleGuard,                    // Authorization
+  RateLimitingGuard            // Rate limiting
+)
+```
+
 ## Core Modules
 
 ### User Management Module
 
 #### User Entity & DTOs
 ```typescript
-// User entity
+// User entity with enhanced validation
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -161,21 +232,51 @@ export class User {
   updatedAt: Date;
 }
 
-// DTOs for validation
+// Enhanced DTOs with comprehensive validation
 export class CreateUserDto {
   @IsEmail()
+  @ApiProperty({ example: 'user@example.com' })
   email: string;
 
   @IsString()
   @MinLength(2)
+  @MaxLength(50)
+  @ApiProperty({ example: 'John' })
   firstName: string;
 
   @IsString()
   @MinLength(2)
+  @MaxLength(50)
+  @ApiProperty({ example: 'Doe' })
   lastName: string;
 
   @IsEnum(UserRole)
+  @ApiProperty({ enum: UserRole })
   role: UserRole;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InterpreterProfile)
+  @ApiProperty({ required: false })
+  profile?: InterpreterProfile | ClientProfile;
+}
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  lastName?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 
   @IsOptional()
   @ValidateNested()
@@ -187,34 +288,122 @@ export class CreateUserDto {
 ```typescript
 @ApiTags('users')
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard, RateLimitingGuard)
+@UseInterceptors(ResponseTransformInterceptor, SecurityInterceptor, CacheInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('profile')
+  @Cache({ ttl: 600 }) // 10 minutes cache
   @ApiOperation({ summary: 'Get current user profile' })
-  async getProfile(@CurrentUser() user: User) {
-    return this.usersService.getProfile(user.id);
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User profile retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: { $ref: '#/components/schemas/User' }
+      }
+    }
+  })
+  async getProfile(@CurrentUser() user: User): Promise<ApiResponse<User>> {
+    const profile = await this.usersService.getProfile(user.id);
+    return { success: true, data: profile };
   }
 
   @Patch('profile')
+  @RateLimit({ requests: 10, windowMs: 60000 }) // 10 updates per minute
   @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile updated successfully' 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Validation error',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        error: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            code: { type: 'string', example: 'VAL_001' },
+            field: { type: 'string' }
+          }
+        }
+      }
+    }
+  })
   async updateProfile(
     @CurrentUser() user: User,
-    @Body() updateProfileDto: UpdateProfileDto
-  ) {
-    return this.usersService.updateProfile(user.id, updateProfileDto);
+    @Body() updateProfileDto: UpdateUserDto
+  ): Promise<ApiResponse<User>> {
+    const updatedUser = await this.usersService.updateProfile(user.id, updateProfileDto);
+    return { success: true, data: updatedUser };
   }
 
-  @Post('approval')
+  @Post(':id/approval')
   @Roles(UserRole.ADMIN)
-  @UseGuards(RoleGuard)
+  @RateLimit({ requests: 20, windowMs: 60000 })
   @ApiOperation({ summary: 'Approve/reject user registration' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User approval status updated' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Insufficient permissions',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        error: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            code: { type: 'string', example: 'AUTH_003' }
+          }
+        }
+      }
+    }
+  })
   async approveUser(
     @Param('id') userId: string,
     @Body() approvalDto: UserApprovalDto
-  ) {
-    return this.usersService.approveUser(userId, approvalDto);
+  ): Promise<ApiResponse<User>> {
+    const approvedUser = await this.usersService.approveUser(userId, approvalDto);
+    return { success: true, data: approvedUser };
+  }
+
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @Cache({ ttl: 300 }) // 5 minutes cache
+  @ApiOperation({ summary: 'Get all users with pagination' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Users retrieved successfully with pagination' 
+  })
+  async findAll(
+    @Query() paginationDto: PaginationDto
+  ): Promise<PaginatedResponse<User>> {
+    const result = await this.usersService.findAll(paginationDto);
+    return {
+      success: true,
+      data: result.items,
+      meta: {
+        pagination: {
+          page: paginationDto.pageNumber,
+          limit: paginationDto.limitNumber,
+          total: result.total,
+          totalPages: Math.ceil(result.total / paginationDto.limitNumber),
+        },
+        timestamp: new Date().toISOString(),
+        requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      },
+    };
   }
 }
 ```
@@ -1932,7 +2121,141 @@ async function bootstrap() {
 }
 ```
 
+## Health Check & Monitoring
+
+### Health Check Controller
+```typescript
+@Controller('health')
+export class HealthController {
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+    private readonly clerkService: ClerkService
+  ) {}
+
+  @Get()
+  @Public() // No authentication required
+  @ApiOperation({ summary: 'System health check' })
+  @ApiResponse({ status: 200, description: 'System is healthy' })
+  @ApiResponse({ status: 503, description: 'System is unhealthy' })
+  async check(): Promise<ApiResponse<HealthCheckResult>> {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: await this.checkDatabase(),
+        redis: await this.checkRedis(),
+        clerk: await this.checkClerk(),
+        supabase: await this.checkSupabase(),
+      },
+    };
+
+    const isHealthy = Object.values(health.services).every(service => service.status === 'ok');
+    const status = isHealthy ? 200 : 503;
+
+    return {
+      success: isHealthy,
+      data: health,
+    };
+  }
+
+  @Get('live')
+  @Public()
+  @ApiOperation({ summary: 'Liveness probe' })
+  async liveness(): Promise<ApiResponse<{ status: string }>> {
+    return {
+      success: true,
+      data: { status: 'alive' },
+    };
+  }
+
+  @Get('ready')
+  @Public()
+  @ApiOperation({ summary: 'Readiness probe' })
+  async readiness(): Promise<ApiResponse<{ status: string }>> {
+    // Check if all required services are ready
+    const databaseReady = await this.checkDatabase();
+    const cacheReady = await this.checkRedis();
+
+    const isReady = databaseReady.status === 'ok' && cacheReady.status === 'ok';
+
+    return {
+      success: isReady,
+      data: { status: isReady ? 'ready' : 'not ready' },
+    };
+  }
+
+  private async checkDatabase(): Promise<ServiceHealth> {
+    try {
+      await this.databaseService.query('SELECT 1');
+      return { status: 'ok', responseTime: Date.now() };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  private async checkRedis(): Promise<ServiceHealth> {
+    try {
+      await this.cacheService.set('health-check', 'ok', 10);
+      const result = await this.cacheService.get('health-check');
+      await this.cacheService.del('health-check');
+      
+      return result === 'ok' 
+        ? { status: 'ok', responseTime: Date.now() }
+        : { status: 'error', error: 'Cache test failed' };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  private async checkClerk(): Promise<ServiceHealth> {
+    try {
+      // Test Clerk API connectivity
+      await this.clerkService.healthCheck();
+      return { status: 'ok', responseTime: Date.now() };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  private async checkSupabase(): Promise<ServiceHealth> {
+    try {
+      // Test Supabase connectivity
+      const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
+        headers: { apikey: process.env.SUPABASE_ANON_KEY },
+      });
+      
+      return response.ok 
+        ? { status: 'ok', responseTime: Date.now() }
+        : { status: 'error', error: `HTTP ${response.status}` };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+}
+
+interface ServiceHealth {
+  status: 'ok' | 'error';
+  responseTime?: number;
+  error?: string;
+}
+
+interface HealthCheckResult {
+  status: string;
+  timestamp: string;
+  services: Record<string, ServiceHealth>;
+}
+```
+
 ### API Endpoints Overview
+
+#### Health & Monitoring Endpoints
+```
+GET  /health                  # Comprehensive health check
+GET  /health/live            # Liveness probe (K8s)
+GET  /health/ready           # Readiness probe (K8s)
+GET  /metrics                # Prometheus metrics
+```
 
 #### Authentication Endpoints
 ```
@@ -2051,72 +2374,1069 @@ POST   /notifications/verify      # Verify email/phone for notifications
 GET    /notifications/digest      # Get notification digest
 ```
 
+## Advanced Business Logic Services
+
+### Dynamic Pricing Service
+Implements intelligent pricing based on demand, urgency, and market conditions.
+
+```typescript
+@Injectable()
+export class DynamicPricingService {
+  constructor(
+    @InjectRepository(DynamicPricingConfig)
+    private pricingConfigRepository: Repository<DynamicPricingConfig>,
+    @InjectRepository(RateCalculation)
+    private rateCalculationRepository: Repository<RateCalculation>,
+    private readonly demandAnalyticsService: DemandAnalyticsService
+  ) {}
+
+  async calculateDynamicRate(
+    serviceType: ServiceType,
+    languageFrom: string,
+    languageTo: string,
+    requestDetails: DynamicPricingContext
+  ): Promise<RateCalculationResult> {
+    // Get base pricing configuration
+    const config = await this.getPricingConfig(serviceType, languageFrom, languageTo);
+    
+    // Calculate dynamic factors
+    const demandMultiplier = await this.calculateDemandMultiplier(serviceType, requestDetails.scheduledAt);
+    const urgencyMultiplier = this.calculateUrgencyMultiplier(requestDetails.timeUntilNeeded);
+    const complexityMultiplier = this.calculateComplexityMultiplier(requestDetails);
+    const timeOfDayMultiplier = this.calculateTimeOfDayMultiplier(requestDetails.scheduledAt);
+    const availabilityMultiplier = await this.calculateAvailabilityMultiplier(serviceType, requestDetails);
+
+    // Apply multipliers
+    const baseRate = config.baseRate;
+    const calculatedRate = baseRate * 
+      demandMultiplier * 
+      urgencyMultiplier * 
+      complexityMultiplier * 
+      timeOfDayMultiplier * 
+      availabilityMultiplier;
+
+    // Apply constraints
+    const finalRate = Math.max(
+      config.minRate, 
+      Math.min(config.maxRate, calculatedRate)
+    );
+
+    // Save calculation history
+    const calculation = await this.rateCalculationRepository.save({
+      requestId: requestDetails.requestId,
+      baseRate,
+      finalRate,
+      calculationFactors: {
+        demandMultiplier,
+        urgencyMultiplier,
+        complexityMultiplier,
+        timeOfDayMultiplier,
+        availabilityMultiplier,
+        appliedConstraints: {
+          minRate: config.minRate,
+          maxRate: config.maxRate,
+          wasConstrained: finalRate !== calculatedRate
+        }
+      },
+      demandLevel: this.getDemandLevel(demandMultiplier),
+      availableInterpretersCount: requestDetails.availableInterpretersCount,
+      timeUntilNeeded: requestDetails.timeUntilNeeded,
+      autoApproved: this.shouldAutoApprove(finalRate, baseRate)
+    });
+
+    return {
+      baseRate,
+      finalRate,
+      calculationId: calculation.id,
+      factors: calculation.calculationFactors,
+      requiresApproval: !calculation.autoApproved
+    };
+  }
+
+  private async calculateDemandMultiplier(
+    serviceType: ServiceType, 
+    scheduledAt: Date
+  ): Promise<number> {
+    const demandMetrics = await this.demandAnalyticsService.getDemandMetrics(
+      serviceType, 
+      scheduledAt
+    );
+    
+    // Scale demand multiplier based on historical data
+    if (demandMetrics.currentDemand > demandMetrics.avgDemand * 2) {
+      return 1.5; // High demand
+    } else if (demandMetrics.currentDemand > demandMetrics.avgDemand * 1.5) {
+      return 1.25; // Moderate demand
+    } else if (demandMetrics.currentDemand < demandMetrics.avgDemand * 0.5) {
+      return 0.9; // Low demand
+    }
+    return 1.0; // Normal demand
+  }
+
+  private calculateUrgencyMultiplier(timeUntilNeeded: number): number {
+    const hoursUntilNeeded = timeUntilNeeded / (1000 * 60 * 60);
+    
+    if (hoursUntilNeeded < 2) return 2.0; // Emergency
+    if (hoursUntilNeeded < 24) return 1.5; // Rush
+    if (hoursUntilNeeded < 72) return 1.2; // Express
+    return 1.0; // Standard
+  }
+
+  async approvePricingCalculation(
+    calculationId: string, 
+    adminId: string
+  ): Promise<RateCalculation> {
+    const calculation = await this.rateCalculationRepository.findOne({
+      where: { id: calculationId }
+    });
+
+    if (!calculation) {
+      throw new NotFoundException('Rate calculation not found');
+    }
+
+    calculation.adminApproved = true;
+    calculation.approvedBy = { id: adminId } as User;
+    calculation.approvedAt = new Date();
+
+    return this.rateCalculationRepository.save(calculation);
+  }
+}
+```
+
+### Video Call Quality Monitor Service
+Real-time monitoring and optimization of video call sessions.
+
+```typescript
+@Injectable()
+export class VideoCallQualityService {
+  constructor(
+    @InjectRepository(VideoCallQualityMetrics)
+    private qualityMetricsRepository: Repository<VideoCallQualityMetrics>,
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly alertingService: AlertingService
+  ) {}
+
+  async recordQualityMetrics(
+    sessionId: string,
+    qualityData: VideoQualitySnapshot
+  ): Promise<void> {
+    const metrics = this.qualityMetricsRepository.create({
+      sessionId,
+      ...qualityData,
+      connectionQuality: this.calculateConnectionQuality(qualityData),
+      recordedAt: new Date()
+    });
+
+    await this.qualityMetricsRepository.save(metrics);
+
+    // Check for quality issues and alert if necessary
+    await this.analyzeQualityAndAlert(metrics);
+
+    // Emit real-time quality updates
+    this.realtimeGateway.emitToSession(sessionId, 'quality_update', {
+      quality: metrics.connectionQuality,
+      metrics: this.sanitizeMetricsForClient(metrics)
+    });
+  }
+
+  private calculateConnectionQuality(data: VideoQualitySnapshot): QualityRating {
+    const score = this.calculateQualityScore(data);
+    
+    if (score >= 90) return QualityRating.EXCELLENT;
+    if (score >= 75) return QualityRating.GOOD;
+    if (score >= 60) return QualityRating.FAIR;
+    if (score >= 40) return QualityRating.POOR;
+    return QualityRating.FAILED;
+  }
+
+  private calculateQualityScore(data: VideoQualitySnapshot): number {
+    let score = 100;
+
+    // Deduct points for quality issues
+    if (data.packetLossPercent > 5) score -= 30;
+    else if (data.packetLossPercent > 2) score -= 15;
+    else if (data.packetLossPercent > 1) score -= 5;
+
+    if (data.latencyMs > 300) score -= 25;
+    else if (data.latencyMs > 150) score -= 10;
+    else if (data.latencyMs > 100) score -= 5;
+
+    if (data.jitterMs > 50) score -= 15;
+    else if (data.jitterMs > 30) score -= 8;
+
+    if (data.videoBitrate < 500) score -= 20;
+    if (data.audioBitrate < 32) score -= 15;
+
+    if (data.droppedConnectionCount > 0) score -= (data.droppedConnectionCount * 10);
+
+    return Math.max(0, score);
+  }
+
+  async getSessionQualityReport(sessionId: string): Promise<SessionQualityReport> {
+    const metrics = await this.qualityMetricsRepository.find({
+      where: { sessionId },
+      order: { recordedAt: 'ASC' }
+    });
+
+    if (metrics.length === 0) {
+      throw new NotFoundException('No quality metrics found for session');
+    }
+
+    return {
+      sessionId,
+      overallQuality: this.calculateOverallQuality(metrics),
+      averageLatency: this.calculateAverage(metrics, 'latencyMs'),
+      averagePacketLoss: this.calculateAverage(metrics, 'packetLossPercent'),
+      qualityTrend: this.calculateQualityTrend(metrics),
+      totalConnectionDrops: metrics.reduce((sum, m) => sum + m.droppedConnectionCount, 0),
+      recommendations: this.generateQualityRecommendations(metrics)
+    };
+  }
+
+  private async analyzeQualityAndAlert(metrics: VideoCallQualityMetrics): Promise<void> {
+    const issues: string[] = [];
+
+    if (metrics.connectionQuality === QualityRating.POOR || 
+        metrics.connectionQuality === QualityRating.FAILED) {
+      issues.push(`Poor connection quality: ${metrics.connectionQuality}`);
+    }
+
+    if (metrics.packetLossPercent > 5) {
+      issues.push(`High packet loss: ${metrics.packetLossPercent}%`);
+    }
+
+    if (metrics.latencyMs > 300) {
+      issues.push(`High latency: ${metrics.latencyMs}ms`);
+    }
+
+    if (issues.length > 0) {
+      await this.alertingService.sendQualityAlert({
+        sessionId: metrics.sessionId,
+        issues,
+        metrics: this.sanitizeMetricsForAlert(metrics)
+      });
+    }
+  }
+}
+```
+
+### Document Processing Pipeline Service
+Automated document processing with OCR, validation, and format conversion.
+
+```typescript
+@Injectable()
+export class DocumentProcessingService {
+  constructor(
+    @InjectRepository(DocumentProcessingJob)
+    private processingJobRepository: Repository<DocumentProcessingJob>,
+    private readonly fileService: FileService,
+    private readonly ocrService: OCRService,
+    private readonly virusScanService: VirusScanService,
+    private readonly notificationService: NotificationService
+  ) {}
+
+  async processDocument(
+    requestId: string,
+    fileId: string,
+    processingOptions: DocumentProcessingOptions
+  ): Promise<DocumentProcessingJob> {
+    const file = await this.fileService.findOne(fileId);
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    // Create processing job
+    const job = await this.processingJobRepository.save({
+      requestId,
+      fileId,
+      processingType: processingOptions.type,
+      inputFormat: file.mimetype,
+      outputFormat: processingOptions.outputFormat,
+      processingStatus: ProcessingStatus.QUEUED
+    });
+
+    // Queue processing tasks
+    await this.queueProcessingTasks(job, file);
+
+    return job;
+  }
+
+  private async queueProcessingTasks(
+    job: DocumentProcessingJob,
+    file: UploadedFile
+  ): Promise<void> {
+    try {
+      // Update job status
+      job.processingStatus = ProcessingStatus.PROCESSING;
+      job.startedAt = new Date();
+      await this.processingJobRepository.save(job);
+
+      // Step 1: Virus scan
+      if (job.processingType === ProcessingType.VIRUS_SCAN || 
+          this.shouldPerformVirusScan(file)) {
+        await this.performVirusScan(job, file);
+      }
+
+      // Step 2: OCR if needed
+      if (job.processingType === ProcessingType.OCR || 
+          this.shouldPerformOCR(file)) {
+        await this.performOCR(job, file);
+      }
+
+      // Step 3: Text extraction
+      if (job.processingType === ProcessingType.TEXT_EXTRACTION) {
+        await this.performTextExtraction(job, file);
+      }
+
+      // Step 4: Format conversion
+      if (job.processingType === ProcessingType.FORMAT_CONVERSION) {
+        await this.performFormatConversion(job, file);
+      }
+
+      // Step 5: Document validation
+      if (job.processingType === ProcessingType.VALIDATION) {
+        await this.performDocumentValidation(job, file);
+      }
+
+      // Mark as completed
+      job.processingStatus = ProcessingStatus.COMPLETED;
+      job.completedAt = new Date();
+      job.processingTimeSeconds = Math.round(
+        (job.completedAt.getTime() - job.startedAt.getTime()) / 1000
+      );
+
+      await this.processingJobRepository.save(job);
+
+      // Notify completion
+      await this.notificationService.sendDocumentProcessingComplete(job);
+
+    } catch (error) {
+      await this.handleProcessingError(job, error);
+    }
+  }
+
+  private async performOCR(
+    job: DocumentProcessingJob,
+    file: UploadedFile
+  ): Promise<void> {
+    const ocrResult = await this.ocrService.extractText(file.filePath);
+    
+    job.extractedText = ocrResult.text;
+    job.ocrConfidence = ocrResult.confidence;
+    job.extractedMetadata = {
+      language: ocrResult.detectedLanguage,
+      pageCount: ocrResult.pageCount,
+      wordBoundingBoxes: ocrResult.wordBoundingBoxes
+    };
+    job.wordCount = this.countWords(ocrResult.text);
+    job.characterCount = ocrResult.text.length;
+
+    await this.processingJobRepository.save(job);
+  }
+
+  private async performTextExtraction(
+    job: DocumentProcessingJob,
+    file: UploadedFile
+  ): Promise<void> {
+    let extractedText: string;
+    
+    switch (file.mimetype) {
+      case 'application/pdf':
+        extractedText = await this.extractTextFromPDF(file.filePath);
+        break;
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        extractedText = await this.extractTextFromDocx(file.filePath);
+        break;
+      default:
+        throw new Error(`Unsupported file type for text extraction: ${file.mimetype}`);
+    }
+
+    job.extractedText = extractedText;
+    job.wordCount = this.countWords(extractedText);
+    job.characterCount = extractedText.length;
+
+    await this.processingJobRepository.save(job);
+  }
+
+  private async handleProcessingError(
+    job: DocumentProcessingJob,
+    error: Error
+  ): Promise<void> {
+    job.processingStatus = ProcessingStatus.FAILED;
+    job.errorMessage = error.message;
+    job.retryCount += 1;
+
+    if (job.retryCount < job.maxRetries) {
+      // Schedule retry
+      setTimeout(() => {
+        this.retryProcessing(job.id);
+      }, Math.pow(2, job.retryCount) * 1000); // Exponential backoff
+    } else {
+      // Max retries reached, notify failure
+      await this.notificationService.sendDocumentProcessingFailed(job);
+    }
+
+    await this.processingJobRepository.save(job);
+  }
+
+  async getProcessingStatus(jobId: string): Promise<DocumentProcessingJob> {
+    const job = await this.processingJobRepository.findOne({
+      where: { id: jobId },
+      relations: ['request', 'file']
+    });
+
+    if (!job) {
+      throw new NotFoundException('Processing job not found');
+    }
+
+    return job;
+  }
+}
+```
+
+### Performance Benchmark Service
+Tracks and monitors SLA compliance and system performance.
+
+```typescript
+@Injectable()
+export class PerformanceBenchmarkService {
+  constructor(
+    @InjectRepository(PerformanceBenchmark)
+    private benchmarkRepository: Repository<PerformanceBenchmark>,
+    private readonly metricsCollectionService: MetricsCollectionService,
+    private readonly alertingService: AlertingService
+  ) {}
+
+  async recordBenchmark(
+    benchmarkType: BenchmarkType,
+    serviceComponent: string,
+    metricName: string,
+    targetValue: number,
+    actualValue: number,
+    measurementUnit: string,
+    context: BenchmarkContext
+  ): Promise<PerformanceBenchmark> {
+    const variancePercent = ((actualValue - targetValue) / targetValue) * 100;
+    const slaMet = this.evaluateSLACompliance(benchmarkType, actualValue, targetValue);
+    const performanceRating = this.calculatePerformanceRating(variancePercent, slaMet);
+
+    const benchmark = await this.benchmarkRepository.save({
+      benchmarkType,
+      serviceComponent,
+      metricName,
+      targetValue,
+      actualValue,
+      measurementUnit,
+      slaMet,
+      variancePercent,
+      performanceRating,
+      measurementPeriodStart: context.periodStart,
+      measurementPeriodEnd: context.periodEnd,
+      sampleSize: context.sampleSize,
+      environment: process.env.NODE_ENV,
+      additionalContext: context.metadata
+    });
+
+    // Check for SLA violations and alert
+    if (!slaMet || performanceRating === PerformanceRating.CRITICAL) {
+      await this.alertingService.sendSLAViolationAlert(benchmark);
+    }
+
+    return benchmark;
+  }
+
+  async generatePerformanceReport(
+    dateRange: DateRange,
+    serviceComponent?: string
+  ): Promise<PerformanceReport> {
+    const benchmarks = await this.benchmarkRepository.find({
+      where: {
+        recordedAt: Between(dateRange.start, dateRange.end),
+        ...(serviceComponent && { serviceComponent })
+      },
+      order: { recordedAt: 'DESC' }
+    });
+
+    const report: PerformanceReport = {
+      reportPeriod: dateRange,
+      totalMeasurements: benchmarks.length,
+      overallSLACompliance: this.calculateOverallSLACompliance(benchmarks),
+      componentSummaries: this.generateComponentSummaries(benchmarks),
+      trends: await this.calculatePerformanceTrends(benchmarks),
+      criticalIssues: benchmarks.filter(b => 
+        b.performanceRating === PerformanceRating.CRITICAL
+      ),
+      recommendations: this.generatePerformanceRecommendations(benchmarks)
+    };
+
+    return report;
+  }
+
+  private evaluateSLACompliance(
+    benchmarkType: BenchmarkType,
+    actualValue: number,
+    targetValue: number
+  ): boolean {
+    switch (benchmarkType) {
+      case BenchmarkType.RESPONSE_TIME:
+      case BenchmarkType.RESOLUTION_TIME:
+        return actualValue <= targetValue;
+      
+      case BenchmarkType.THROUGHPUT:
+      case BenchmarkType.AVAILABILITY:
+      case BenchmarkType.CONNECTION_SUCCESS_RATE:
+      case BenchmarkType.USER_SATISFACTION:
+        return actualValue >= targetValue;
+      
+      case BenchmarkType.ERROR_RATE:
+        return actualValue <= targetValue;
+      
+      default:
+        return actualValue === targetValue;
+    }
+  }
+
+  private calculatePerformanceRating(
+    variancePercent: number,
+    slaMet: boolean
+  ): PerformanceRating {
+    if (!slaMet) {
+      if (Math.abs(variancePercent) > 50) return PerformanceRating.CRITICAL;
+      if (Math.abs(variancePercent) > 25) return PerformanceRating.POOR;
+      return PerformanceRating.ACCEPTABLE;
+    }
+
+    if (variancePercent <= -20) return PerformanceRating.EXCELLENT; // 20% better than target
+    if (variancePercent <= -10) return PerformanceRating.GOOD; // 10% better than target
+    return PerformanceRating.ACCEPTABLE;
+  }
+
+  async monitorContinuousPerformance(): Promise<void> {
+    // Collect real-time metrics
+    const apiResponseTimes = await this.metricsCollectionService.getAPIResponseTimes();
+    const errorRates = await this.metricsCollectionService.getErrorRates();
+    const throughputMetrics = await this.metricsCollectionService.getThroughputMetrics();
+
+    // Record benchmarks for each metric
+    for (const metric of apiResponseTimes) {
+      await this.recordBenchmark(
+        BenchmarkType.RESPONSE_TIME,
+        'api',
+        metric.endpoint,
+        200, // Target: 200ms
+        metric.averageResponseTime,
+        'milliseconds',
+        {
+          periodStart: metric.periodStart,
+          periodEnd: metric.periodEnd,
+          sampleSize: metric.sampleCount
+        }
+      );
+    }
+
+    // Similar processing for other metrics...
+  }
+}
+```
+
+### Revenue Recognition Service
+Advanced financial modeling for complex billing scenarios.
+
+```typescript
+@Injectable()
+export class RevenueRecognitionService {
+  constructor(
+    @InjectRepository(RevenueRecognition)
+    private revenueRepository: Repository<RevenueRecognition>,
+    @InjectRepository(ServiceRequest)
+    private requestRepository: Repository<ServiceRequest>,
+    private readonly taxCalculationService: TaxCalculationService,
+    private readonly paymentService: PaymentService
+  ) {}
+
+  async recognizeRevenue(
+    requestId: string,
+    sessionId?: string
+  ): Promise<RevenueRecognition> {
+    const request = await this.requestRepository.findOne({
+      where: { id: requestId },
+      relations: ['client', 'interpreter', 'sessions']
+    });
+
+    if (!request) {
+      throw new NotFoundException('Service request not found');
+    }
+
+    // Calculate revenue components
+    const revenueCalculation = await this.calculateRevenueComponents(request, sessionId);
+    
+    // Determine recognition method
+    const recognitionMethod = this.determineRecognitionMethod(request);
+    
+    // Create revenue recognition record
+    const revenueRecord = await this.revenueRepository.save({
+      requestId,
+      sessionId,
+      grossAmount: revenueCalculation.grossAmount,
+      interpreterFee: revenueCalculation.interpreterFee,
+      platformCommission: revenueCalculation.platformCommission,
+      taxAmount: revenueCalculation.taxAmount,
+      netRevenue: revenueCalculation.netRevenue,
+      currency: 'CAD',
+      serviceDate: this.getServiceDate(request),
+      recognitionDate: this.calculateRecognitionDate(request, recognitionMethod),
+      accountingPeriod: this.getAccountingPeriod(new Date()),
+      revenueType: this.determineRevenueType(request),
+      recognitionMethod,
+      paymentStatus: PaymentStatus.PENDING
+    });
+
+    // Initialize payment processing if applicable
+    if (this.shouldInitiatePayment(request)) {
+      await this.initiatePaymentCollection(revenueRecord);
+    }
+
+    return revenueRecord;
+  }
+
+  private async calculateRevenueComponents(
+    request: ServiceRequest,
+    sessionId?: string
+  ): Promise<RevenueCalculation> {
+    let grossAmount: number;
+    
+    if (sessionId) {
+      // Calculate based on actual session duration
+      const session = request.sessions.find(s => s.id === sessionId);
+      if (!session) {
+        throw new NotFoundException('Session not found');
+      }
+      grossAmount = session.calculatedAmount;
+    } else {
+      // Use estimated amount from request
+      grossAmount = request.estimatedCost || 0;
+    }
+
+    // Calculate platform commission (typically 15-25%)
+    const commissionRate = await this.getCommissionRate(request.serviceType, request.interpreter);
+    const platformCommission = grossAmount * commissionRate;
+    const interpreterFee = grossAmount - platformCommission;
+
+    // Calculate taxes
+    const taxAmount = await this.taxCalculationService.calculateTax(
+      grossAmount,
+      request.client.province,
+      request.serviceType
+    );
+
+    const netRevenue = platformCommission - taxAmount;
+
+    return {
+      grossAmount,
+      interpreterFee,
+      platformCommission,
+      taxAmount,
+      netRevenue
+    };
+  }
+
+  private determineRecognitionMethod(request: ServiceRequest): RecognitionMethod {
+    switch (request.serviceType) {
+      case ServiceType.INSTANT_VIRTUAL:
+        return RecognitionMethod.IMMEDIATE; // Recognize immediately after service
+      
+      case ServiceType.TRANSLATION:
+        return RecognitionMethod.MILESTONE_BASED; // Recognize upon delivery
+      
+      case ServiceType.IN_PERSON:
+      case ServiceType.SCHEDULED_PHONE:
+        return RecognitionMethod.IMMEDIATE; // Recognize after session completion
+      
+      default:
+        return RecognitionMethod.DEFERRED;
+    }
+  }
+
+  async updatePaymentStatus(
+    revenueId: string,
+    paymentStatus: PaymentStatus,
+    transactionId?: string,
+    paymentMethod?: string
+  ): Promise<RevenueRecognition> {
+    const revenue = await this.revenueRepository.findOne({
+      where: { id: revenueId }
+    });
+
+    if (!revenue) {
+      throw new NotFoundException('Revenue record not found');
+    }
+
+    revenue.paymentStatus = paymentStatus;
+    revenue.transactionId = transactionId;
+    revenue.paymentMethod = paymentMethod;
+
+    if (paymentStatus === PaymentStatus.CAPTURED) {
+      revenue.paymentReceivedDate = new Date();
+    }
+
+    return this.revenueRepository.save(revenue);
+  }
+
+  async generateFinancialReport(
+    accountingPeriod: string
+  ): Promise<FinancialReport> {
+    const revenueRecords = await this.revenueRepository.find({
+      where: { accountingPeriod },
+      relations: ['request']
+    });
+
+    const report: FinancialReport = {
+      period: accountingPeriod,
+      totalGrossRevenue: revenueRecords.reduce((sum, r) => sum + r.grossAmount, 0),
+      totalNetRevenue: revenueRecords.reduce((sum, r) => sum + r.netRevenue, 0),
+      totalInterpreterFees: revenueRecords.reduce((sum, r) => sum + r.interpreterFee, 0),
+      totalTaxes: revenueRecords.reduce((sum, r) => sum + r.taxAmount, 0),
+      revenueByServiceType: this.groupRevenueByServiceType(revenueRecords),
+      paymentStatus: this.analyzePaymentStatus(revenueRecords),
+      outstandingReceivables: this.calculateOutstandingReceivables(revenueRecords)
+    };
+
+    return report;
+  }
+
+  private async initiatePaymentCollection(
+    revenueRecord: RevenueRecognition
+  ): Promise<void> {
+    try {
+      const paymentResult = await this.paymentService.chargeClient(
+        revenueRecord.request.clientId,
+        revenueRecord.grossAmount,
+        {
+          description: `${revenueRecord.request.serviceType} service - ${revenueRecord.request.requestNumber}`,
+          metadata: {
+            requestId: revenueRecord.requestId,
+            revenueId: revenueRecord.id
+          }
+        }
+      );
+
+      await this.updatePaymentStatus(
+        revenueRecord.id,
+        PaymentStatus.AUTHORIZED,
+        paymentResult.transactionId,
+        paymentResult.paymentMethod
+      );
+
+    } catch (error) {
+      await this.updatePaymentStatus(
+        revenueRecord.id,
+        PaymentStatus.FAILED
+      );
+      
+      // Handle payment failure (retry, notification, etc.)
+      await this.handlePaymentFailure(revenueRecord, error);
+    }
+  }
+}
+```
+
+### Intelligent Interpreter Matching Service
+Advanced algorithm for optimal interpreter assignment.
+
+```typescript
+@Injectable()
+export class IntelligentMatchingService {
+  constructor(
+    @InjectRepository(InterpreterMatchingWeights)
+    private matchingWeightsRepository: Repository<InterpreterMatchingWeights>,
+    @InjectRepository(InterpreterMatchResults)
+    private matchResultsRepository: Repository<InterpreterMatchResults>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private readonly availabilityService: AvailabilityService,
+    private readonly geolocationService: GeolocationService
+  ) {}
+
+  async findOptimalMatch(
+    request: ServiceRequest
+  ): Promise<InterpreterMatchResult> {
+    const startTime = Date.now();
+    
+    // Get available interpreters
+    const candidates = await this.getEligibleCandidates(request);
+    
+    if (candidates.length === 0) {
+      throw new NotFoundException('No available interpreters found for this request');
+    }
+
+    // Get matching weights configuration
+    const weights = await this.getMatchingWeights(
+      request.serviceType,
+      this.determineUrgencyLevel(request)
+    );
+
+    // Calculate match scores for all candidates
+    const scoredCandidates = await Promise.all(
+      candidates.map(candidate => this.calculateMatchScore(request, candidate, weights))
+    );
+
+    // Sort by score (highest first)
+    scoredCandidates.sort((a, b) => b.totalScore - a.totalScore);
+
+    // Select top match
+    const topMatch = scoredCandidates[0];
+    const alternativeMatches = scoredCandidates.slice(1, 5); // Top 5 alternatives
+
+    // Save matching results
+    const matchResult = await this.matchResultsRepository.save({
+      requestId: request.id,
+      algorithmVersion: '2.0',
+      totalCandidatesEvaluated: candidates.length,
+      matchingCriteriaUsed: weights,
+      recommendedInterpreter: { id: topMatch.interpreterId } as User,
+      matchScore: topMatch.totalScore,
+      matchConfidence: this.calculateMatchConfidence(scoredCandidates),
+      alternativeMatches: alternativeMatches.map(alt => ({
+        interpreterId: alt.interpreterId,
+        score: alt.totalScore,
+        reasons: alt.scoreBreakdown
+      })),
+      assignmentMethod: AssignmentMethod.ALGORITHM,
+      timeToMatchMs: Date.now() - startTime
+    });
+
+    return {
+      recommendedInterpreter: topMatch.interpreter,
+      matchScore: topMatch.totalScore,
+      confidence: matchResult.matchConfidence,
+      scoreBreakdown: topMatch.scoreBreakdown,
+      alternatives: alternativeMatches,
+      matchingId: matchResult.id
+    };
+  }
+
+  private async calculateMatchScore(
+    request: ServiceRequest,
+    interpreter: User,
+    weights: InterpreterMatchingWeights
+  ): Promise<ScoredCandidate> {
+    const scores = {
+      languageProficiency: await this.calculateLanguageProficiencyScore(request, interpreter),
+      specializationMatch: await this.calculateSpecializationScore(request, interpreter),
+      locationProximity: await this.calculateLocationScore(request, interpreter),
+      availability: await this.calculateAvailabilityScore(request, interpreter),
+      rating: this.calculateRatingScore(interpreter),
+      experience: this.calculateExperienceScore(interpreter),
+      previousClient: await this.calculatePreviousClientScore(request, interpreter),
+      responseTime: await this.calculateResponseTimeScore(interpreter),
+      costEfficiency: this.calculateCostEfficiencyScore(interpreter)
+    };
+
+    // Apply weights and calculate total score
+    const weightedScores = {
+      languageProficiency: scores.languageProficiency * weights.languageProficiencyWeight,
+      specializationMatch: scores.specializationMatch * weights.specializationMatchWeight,
+      locationProximity: scores.locationProximity * weights.locationProximityWeight,
+      availability: scores.availability * weights.availabilityWeight,
+      rating: scores.rating * weights.ratingWeight,
+      experience: scores.experience * weights.experienceWeight,
+      previousClient: scores.previousClient * weights.previousClientWeight,
+      responseTime: scores.responseTime * weights.responseTimeWeight,
+      costEfficiency: scores.costEfficiency * weights.costEfficiencyWeight
+    };
+
+    const totalScore = Object.values(weightedScores).reduce((sum, score) => sum + score, 0);
+
+    return {
+      interpreter,
+      interpreterId: interpreter.id,
+      totalScore,
+      scoreBreakdown: {
+        rawScores: scores,
+        weightedScores,
+        weights: {
+          languageProficiency: weights.languageProficiencyWeight,
+          specializationMatch: weights.specializationMatchWeight,
+          locationProximity: weights.locationProximityWeight,
+          availability: weights.availabilityWeight,
+          rating: weights.ratingWeight,
+          experience: weights.experienceWeight,
+          previousClient: weights.previousClientWeight,
+          responseTime: weights.responseTimeWeight,
+          costEfficiency: weights.costEfficiencyWeight
+        }
+      }
+    };
+  }
+
+  private async calculateLanguageProficiencyScore(
+    request: ServiceRequest,
+    interpreter: User
+  ): Promise<number> {
+    const interpreterLanguages = interpreter.languages || [];
+    
+    // Find exact match for language pair
+    const exactMatch = interpreterLanguages.find(lang => 
+      lang.from === request.languageFrom && 
+      lang.to === request.languageTo
+    );
+
+    if (exactMatch) {
+      return exactMatch.proficiencyLevel; // Assuming 0-1 scale
+    }
+
+    // Check for reverse language pair
+    const reverseMatch = interpreterLanguages.find(lang => 
+      lang.from === request.languageTo && 
+      lang.to === request.languageFrom
+    );
+
+    if (reverseMatch) {
+      return reverseMatch.proficiencyLevel * 0.9; // Slight penalty for reverse
+    }
+
+    return 0; // No language match
+  }
+
+  private async calculateAvailabilityScore(
+    request: ServiceRequest,
+    interpreter: User
+  ): Promise<number> {
+    const availability = await this.availabilityService.getInterpreterAvailability(
+      interpreter.id,
+      request.scheduledAt,
+      request.duration
+    );
+
+    if (!availability.isAvailable) return 0;
+
+    let score = 1.0;
+
+    // Bonus for preferred time slots
+    if (availability.isPreferredTime) score += 0.2;
+    
+    // Penalty for emergency-only availability
+    if (availability.type === 'emergency_only') score -= 0.3;
+    
+    // Consider current workload
+    const currentSessions = availability.currentConcurrentSessions;
+    const maxSessions = availability.maxConcurrentSessions;
+    
+    if (currentSessions >= maxSessions) return 0;
+    
+    score *= 1 - (currentSessions / maxSessions); // Reduce score based on current load
+
+    return Math.max(0, Math.min(1, score));
+  }
+
+  async recordAssignmentOutcome(
+    matchingId: string,
+    actuallyAssignedInterpreterId: string,
+    assignmentMethod: AssignmentMethod,
+    adminOverrideReason?: string
+  ): Promise<void> {
+    const matchResult = await this.matchResultsRepository.findOne({
+      where: { id: matchingId }
+    });
+
+    if (matchResult) {
+      matchResult.actuallyAssignedInterpreter = { id: actuallyAssignedInterpreterId } as User;
+      matchResult.assignmentMethod = assignmentMethod;
+      matchResult.adminOverrideReason = adminOverrideReason;
+
+      await this.matchResultsRepository.save(matchResult);
+    }
+  }
+
+  async trackAssignmentSuccess(
+    matchingId: string,
+    accepted: boolean,
+    clientSatisfactionRating?: number
+  ): Promise<void> {
+    const matchResult = await this.matchResultsRepository.findOne({
+      where: { id: matchingId }
+    });
+
+    if (matchResult) {
+      matchResult.assignmentAccepted = accepted;
+      matchResult.clientSatisfactionRating = clientSatisfactionRating;
+
+      await this.matchResultsRepository.save(matchResult);
+
+      // Use this data to improve future matching algorithms
+      await this.updateMatchingWeights(matchResult);
+    }
+  }
+
+  private async updateMatchingWeights(
+    matchResult: InterpreterMatchResults
+  ): Promise<void> {
+    // Analyze patterns and adjust weights based on successful/unsuccessful matches
+    // This implements machine learning feedback loop for continuous improvement
+    
+    if (matchResult.assignmentAccepted && matchResult.clientSatisfactionRating >= 4.0) {
+      // Successful match - reinforce these weights
+      await this.reinforceSuccessfulWeights(matchResult);
+    } else if (!matchResult.assignmentAccepted || matchResult.clientSatisfactionRating < 3.0) {
+      // Unsuccessful match - adjust weights
+      await this.adjustUnsuccessfulWeights(matchResult);
+    }
+  }
+}
+
+## Additional API Endpoints
+
+### Dynamic Pricing Endpoints
+```
+GET    /pricing/calculate        # Calculate dynamic rate for request
+POST   /pricing/configs          # Create pricing configuration (admin)
+GET    /pricing/configs          # List pricing configurations
+PATCH  /pricing/configs/:id      # Update pricing configuration
+POST   /pricing/approve/:id      # Approve rate calculation (admin)
+```
+
+### Video Quality Monitoring Endpoints
+```
+POST   /video/quality/record     # Record quality metrics
+GET    /video/quality/:sessionId # Get session quality report
+GET    /video/quality/alerts     # Get quality alerts (admin)
+PATCH  /video/quality/alert/:id  # Acknowledge quality alert
+```
+
+### Document Processing Endpoints
+```
+POST   /documents/process        # Start document processing
+GET    /documents/process/:jobId # Get processing status
+POST   /documents/retry/:jobId   # Retry failed processing
+GET    /documents/processed      # List processed documents
+```
+
+### Performance Monitoring Endpoints
+```
+GET    /performance/benchmarks   # Get performance benchmarks
+POST   /performance/record       # Record performance metric
+GET    /performance/report       # Generate performance report
+GET    /performance/sla          # Get SLA compliance status
+```
+
+### Revenue Recognition Endpoints
+```
+POST   /revenue/recognize        # Recognize revenue for request
+GET    /revenue/reports          # Financial reports
+PATCH  /revenue/:id/payment      # Update payment status
+GET    /revenue/reconciliation   # Payment reconciliation data
+```
+
+### Intelligent Matching Endpoints
+```
+POST   /matching/find-optimal    # Find optimal interpreter match
+GET    /matching/weights         # Get matching algorithm weights
+PATCH  /matching/weights/:id     # Update matching weights (admin)
+POST   /matching/record-outcome  # Record assignment outcome
+GET    /matching/analytics       # Matching performance analytics
+```
+
 ## Deployment & Infrastructure
 
 ### Environment Configuration
-```typescript
-// Configuration validation
-export class EnvironmentVariables {
-  @IsString()
-  DATABASE_URL: string;
-
-  @IsString()
-  SUPABASE_URL: string;
-
-  @IsString()
-  SUPABASE_ANON_KEY: string;
-
-  @IsString()
-  SUPABASE_SERVICE_KEY: string;
-
-  @IsString()
-  CLERK_SECRET_KEY: string;
-
-  @IsString()
-  REDIS_URL: string;
-
-  @IsOptional()
-  @IsNumber()
-  PORT: number = 3000;
-
-  @IsEnum(['development', 'staging', 'production'])
-  NODE_ENV: 'development' | 'staging' | 'production';
-}
 ```
-
-### Docker Configuration
-```dockerfile
-# Dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY dist ./dist
-
-EXPOSE 3000
-
-CMD ["node", "dist/main"]
-```
-
-### Health Check Endpoints
-```typescript
-@Controller('health')
-export class HealthController {
-  constructor(
-    private readonly supabaseService: SupabaseService,
-    private readonly redisService: RedisService
-  ) {}
-
-  @Get()
-  @HealthCheck()
-  check() {
-    return this.health.check([
-      () => this.supabaseService.pingCheck('supabase'),
-      () => this.redisService.pingCheck('redis'),
-    ]);
-  }
-}
-``` 

@@ -7,10 +7,7 @@ This document outlines the complete user flows for all three user types in the L
 ### ELS Service Model Integration
 The platform incorporates ELS's established service offerings:
 - **In-Person (On-site) Interpretation**: Consecutive or simultaneous at client location
-- **Group Interpretation**: Multiple client sessions for activities and information sharing
 - **Conference-Telephone Interpreting**: Remote interpretation from different locations
-- **Message Relay Service**: Brief communication and information retrieval
-- **Sight Translation**: Instant oral conversion of written materials during sessions
 - **Official Document Translation**: CIC-approved translations with official certification seal
 
 **Supported Languages**: English/French ↔ Arabic, Bengali, Chinese (Mandarin/Cantonese), German, Hindi, Japanese, Korean, Portuguese, Russian, Spanish, Vietnamese, and others
@@ -655,107 +652,7 @@ System Recovery:
 
 ## Additional Service Type Flows
 
-### Group Interpretation Flow
-```
-Client → Group Interpretation Request
-├── Step 1: Group Session Setup
-│   ├── Select "Group Interpretation" service type
-│   ├── Specify number of participants (2-20)
-│   ├── Choose session format (in-person/virtual)
-│   ├── Select language pairs (EN/FR → target languages)
-│   └── Set duration and scheduling
-├── Step 2: Participant Management
-│   ├── Add participant names and contact information
-│   ├── Send invitation links/details to participants
-│   ├── Configure accessibility requirements
-│   ├── Set up group communication channels
-│   └── Define session roles and permissions
-├── Step 3: Interpreter Coordination
-│   ├── Determine number of interpreters needed
-│   ├── Assign primary and backup interpreters
-│   ├── Coordinate interpreter briefing session
-│   ├── Share group session materials and context
-│   └── Schedule pre-session technical check
-├── Step 4: Session Execution
-│   ├── Send reminders to all participants
-│   ├── Set up virtual meeting room or confirm location
-│   ├── Conduct technical check with all parties
-│   ├── Begin interpretation with quality monitoring
-│   ├── Manage participant interaction and turns
-│   └── Handle breaks and session management
-└── Post-Session Management
-    ├── Distribute session summary to participants
-    ├── Collect feedback from all attendees
-    ├── Process billing for multiple participants
-    ├── Archive session recordings if applicable
-    └── Schedule follow-up sessions if requested
-```
 
-### Message Relay Service Flow
-```
-Client → Message Relay Request
-├── Initial Setup
-│   ├── Select "Message Relay Service" type
-│   ├── Choose language pair (EN/FR → target)
-│   ├── Specify urgency level (standard/priority)
-│   ├── Provide contact information for all parties
-│   └── Define scope and complexity of communication
-├── Communication Coordination
-│   ├── Brief interpreter on communication context
-│   ├── Establish three-way communication channel
-│   ├── Verify contact availability for all parties
-│   ├── Set up secure communication protocols
-│   └── Begin moderated conversation
-├── Active Relay Process
-│   ├── Facilitate real-time conversation flow
-│   ├── Ensure accurate message transmission
-│   ├── Clarify misunderstandings or complex terms
-│   ├── Maintain neutrality and professionalism
-│   ├── Document key decisions or agreements
-│   └── Handle sensitive or confidential information
-├── Session Completion
-│   ├── Confirm all messages transmitted accurately
-│   ├── Summarize key outcomes and decisions
-│   ├── Verify understanding from all parties
-│   ├── Document session for client records
-│   └── Process billing based on duration
-└── Follow-up Actions
-    ├── Send session summary to client
-    ├── Archive communication records securely
-    ├── Schedule additional relay sessions if needed
-    ├── Collect feedback on service quality
-    └── Update client relationship records
-```
-
-### Sight Translation Service Flow
-```
-Interpreter → Sight Translation Session
-├── Pre-Session Document Review
-│   ├── Receive documents from client in advance
-│   ├── Review document complexity and terminology
-│   ├── Research technical terms and context
-│   ├── Prepare glossaries and reference materials
-│   └── Coordinate with client on delivery format
-├── Live Sight Translation Execution
-│   ├── Establish connection with client (in-person/virtual)
-│   ├── Confirm document viewing arrangements
-│   ├── Provide real-time oral translation of written text
-│   ├── Handle questions and clarifications
-│   ├── Maintain accuracy while speaking naturally
-│   └── Manage pacing for client comprehension
-├── Quality Assurance Process
-│   ├── Review translated content with client
-│   ├── Clarify any unclear sections
-│   ├── Provide additional context if needed
-│   ├── Confirm client understanding and satisfaction
-│   └── Document any special terminology used
-└── Session Documentation
-    ├── Record session details and outcomes
-    ├── Note any challenging terms or concepts
-    ├── Update personal glossary for future reference
-    ├── Submit session summary to ELS
-    └── Request client feedback and rating
-```
 
 ## Administrative & Business Process Flows
 

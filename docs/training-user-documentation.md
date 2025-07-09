@@ -104,10 +104,8 @@ Service Request Lifecycle Management:
 │   └── Final delivery and client satisfaction confirmation
 ├── Interpretation Service Coordination
 │   ├── In-person interpretation scheduling and logistics
-│   ├── Group interpretation planning and resource allocation
 │   ├── Conference-telephone setup and technical coordination
-│   ├── Instant virtual interpretation emergency response
-│   └── Message relay service management and documentation
+│   └── Instant virtual interpretation emergency response
 ├── Emergency and Urgent Request Handling
 │   ├── 24/7 on-call procedures and escalation protocols
 │   ├── Emergency interpreter mobilization and coordination

@@ -9,7 +9,7 @@ This document outlines the comprehensive implementation strategy for the LinguaL
 - **Website**: www.exls.ca
 - **Contact**: 613.305.4552 | info@exls.ca
 - **Certifications**: CIC (Ontario Ministry of Citizenship & Immigration Canada) approved
-- **Current Services**: In-person interpretation, group interpretation, conference-telephone interpreting, message relay, sight translation, official document translation
+- **Current Services**: In-person interpretation, conference-telephone interpreting, official document translation
 - **Languages**: English/French ↔ Arabic, Bengali, Chinese, German, Hindi, Japanese, Korean, Portuguese, Russian, Spanish, Vietnamese, and others
 - **Mission**: To overcome language barriers between service providers and their clients
 

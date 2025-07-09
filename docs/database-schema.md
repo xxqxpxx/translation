@@ -1191,7 +1191,6 @@ CREATE UNIQUE INDEX idx_notification_preferences_user_unique ON notification_pre
 CREATE INDEX idx_notification_preferences_email ON notification_preferences(email_address);
 CREATE INDEX idx_notification_preferences_phone ON notification_preferences(phone_number);
 ```
-```
 
 ## Migration Scripts
 
@@ -1245,3 +1244,324 @@ This comprehensive database schema provides:
 7. **Data integrity** through constraints and validation
 
 The schema is designed to scale while maintaining consistency and supporting all features across web and mobile platforms. 
+
+```sql
+-- Dynamic Pricing Configuration Table
+CREATE TABLE dynamic_pricing_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_type service_type NOT NULL,
+    language_from VARCHAR NOT NULL,
+    language_to VARCHAR NOT NULL,
+    
+    -- Base pricing
+    base_rate DECIMAL(10,4) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'CAD',
+    
+    -- Dynamic factors
+    demand_multiplier DECIMAL(4,2) DEFAULT 1.0,
+    urgency_multiplier DECIMAL(4,2) DEFAULT 1.0,
+    complexity_multiplier DECIMAL(4,2) DEFAULT 1.0,
+    time_of_day_multiplier DECIMAL(4,2) DEFAULT 1.0,
+    availability_multiplier DECIMAL(4,2) DEFAULT 1.0,
+    
+    -- Constraints
+    min_rate DECIMAL(10,4) NOT NULL,
+    max_rate DECIMAL(10,4) NOT NULL,
+    effective_from TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    effective_until TIMESTAMP WITH TIME ZONE,
+    
+    -- Metadata
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Rate Calculation History Table
+CREATE TABLE rate_calculations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    
+    -- Calculation details
+    base_rate DECIMAL(10,4) NOT NULL,
+    final_rate DECIMAL(10,4) NOT NULL,
+    calculation_factors JSONB NOT NULL, -- All multipliers and reasoning
+    
+    -- Context
+    calculated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    demand_level demand_level_type NOT NULL,
+    available_interpreters_count INTEGER,
+    time_until_needed INTERVAL,
+    
+    -- Approval workflow
+    auto_approved BOOLEAN DEFAULT FALSE,
+    admin_approved BOOLEAN,
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TYPE demand_level_type AS ENUM ('low', 'normal', 'high', 'peak', 'emergency');
+
+-- Video Call Quality Monitoring Table
+CREATE TABLE video_call_quality_metrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    
+    -- Quality metrics
+    video_bitrate INTEGER, -- kbps
+    audio_bitrate INTEGER, -- kbps
+    video_resolution VARCHAR, -- "1920x1080", "1280x720", etc.
+    video_fps INTEGER,
+    packet_loss_percent DECIMAL(5,2),
+    jitter_ms DECIMAL(8,2),
+    latency_ms DECIMAL(8,2),
+    
+    -- Network information
+    network_type network_type_enum,
+    connection_quality quality_rating_enum,
+    bandwidth_available INTEGER, -- kbps
+    
+    -- Call session details
+    participants_count INTEGER DEFAULT 2,
+    call_duration_seconds INTEGER,
+    dropped_connection_count INTEGER DEFAULT 0,
+    quality_degradation_events INTEGER DEFAULT 0,
+    
+    -- Metadata
+    recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    device_info JSONB,
+    browser_info JSONB
+);
+
+CREATE TYPE network_type_enum AS ENUM ('wifi', 'cellular_4g', 'cellular_5g', 'ethernet', 'unknown');
+CREATE TYPE quality_rating_enum AS ENUM ('excellent', 'good', 'fair', 'poor', 'failed');
+
+-- Document Processing Pipeline Table
+CREATE TABLE document_processing_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    file_id UUID NOT NULL REFERENCES uploaded_files(id) ON DELETE CASCADE,
+    
+    -- Processing details
+    processing_type processing_type_enum NOT NULL,
+    input_format VARCHAR NOT NULL,
+    output_format VARCHAR,
+    processing_status processing_status_enum NOT NULL DEFAULT 'queued',
+    
+    -- OCR and extraction
+    ocr_confidence DECIMAL(5,2), -- Overall OCR confidence score
+    extracted_text TEXT,
+    extracted_metadata JSONB,
+    word_count INTEGER,
+    character_count INTEGER,
+    
+    -- Error handling
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    
+    -- Timing
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    processing_time_seconds INTEGER,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TYPE processing_type_enum AS ENUM ('ocr', 'format_conversion', 'text_extraction', 'validation', 'virus_scan');
+CREATE TYPE processing_status_enum AS ENUM ('queued', 'processing', 'completed', 'failed', 'cancelled');
+
+-- Performance Benchmark Tracking Table
+CREATE TABLE performance_benchmarks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Benchmark details
+    benchmark_type benchmark_type_enum NOT NULL,
+    service_component VARCHAR NOT NULL,
+    metric_name VARCHAR NOT NULL,
+    target_value DECIMAL(15,6) NOT NULL,
+    actual_value DECIMAL(15,6) NOT NULL,
+    measurement_unit VARCHAR NOT NULL,
+    
+    -- SLA compliance
+    sla_met BOOLEAN NOT NULL,
+    variance_percent DECIMAL(8,4),
+    performance_rating performance_rating_enum,
+    
+    -- Context
+    measurement_period_start TIMESTAMP WITH TIME ZONE NOT NULL,
+    measurement_period_end TIMESTAMP WITH TIME ZONE NOT NULL,
+    sample_size INTEGER,
+    environment VARCHAR DEFAULT 'production',
+    
+    -- Metadata
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    additional_context JSONB
+);
+
+CREATE TYPE benchmark_type_enum AS ENUM (
+    'response_time', 'throughput', 'availability', 'error_rate', 
+    'user_satisfaction', 'resolution_time', 'connection_success_rate'
+);
+
+CREATE TYPE performance_rating_enum AS ENUM ('excellent', 'good', 'acceptable', 'poor', 'critical');
+
+-- Revenue Recognition Table
+CREATE TABLE revenue_recognition (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+    
+    -- Revenue details
+    gross_amount DECIMAL(12,2) NOT NULL,
+    interpreter_fee DECIMAL(12,2) NOT NULL,
+    platform_commission DECIMAL(12,2) NOT NULL,
+    tax_amount DECIMAL(12,2) DEFAULT 0,
+    net_revenue DECIMAL(12,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'CAD',
+    
+    -- Recognition timing
+    service_date DATE NOT NULL,
+    recognition_date DATE NOT NULL,
+    payment_received_date DATE,
+    
+    -- Accounting details
+    accounting_period VARCHAR NOT NULL, -- YYYY-MM format
+    revenue_type revenue_type_enum NOT NULL,
+    recognition_method recognition_method_enum NOT NULL,
+    
+    -- Payment tracking
+    payment_status payment_status_enum NOT NULL DEFAULT 'pending',
+    payment_method VARCHAR,
+    transaction_id VARCHAR,
+    
+    -- Adjustments
+    adjustment_amount DECIMAL(12,2) DEFAULT 0,
+    adjustment_reason TEXT,
+    adjustment_date TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TYPE revenue_type_enum AS ENUM ('service_fee', 'commission', 'adjustment', 'refund', 'bonus');
+CREATE TYPE recognition_method_enum AS ENUM ('immediate', 'deferred', 'milestone_based', 'subscription');
+CREATE TYPE payment_status_enum AS ENUM ('pending', 'authorized', 'captured', 'failed', 'refunded', 'disputed');
+
+-- Interpreter Availability Matrix Table
+CREATE TABLE interpreter_availability_matrix (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    interpreter_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Time slot details
+    day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6), -- 0=Sunday
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    timezone VARCHAR DEFAULT 'America/Toronto',
+    
+    -- Service preferences
+    service_types service_type[] NOT NULL,
+    languages_supported JSONB NOT NULL, -- Array of language pairs
+    max_concurrent_sessions INTEGER DEFAULT 1,
+    
+    -- Advanced availability
+    availability_type availability_type_enum NOT NULL DEFAULT 'regular',
+    is_emergency_available BOOLEAN DEFAULT FALSE,
+    min_notice_minutes INTEGER DEFAULT 60,
+    preferred_session_duration INTEGER, -- minutes
+    
+    -- Calendar integration
+    external_calendar_sync BOOLEAN DEFAULT FALSE,
+    auto_block_conflicts BOOLEAN DEFAULT TRUE,
+    
+    -- Metadata
+    effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    effective_until DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT valid_time_range CHECK (end_time > start_time),
+    CONSTRAINT valid_day_of_week CHECK (day_of_week BETWEEN 0 AND 6)
+);
+
+CREATE TYPE availability_type_enum AS ENUM ('regular', 'preferred', 'available_if_needed', 'emergency_only');
+
+-- Intelligent Matching Algorithm Table
+CREATE TABLE interpreter_matching_weights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Matching criteria weights
+    language_proficiency_weight DECIMAL(4,2) DEFAULT 1.0,
+    specialization_match_weight DECIMAL(4,2) DEFAULT 0.8,
+    location_proximity_weight DECIMAL(4,2) DEFAULT 0.6,
+    availability_weight DECIMAL(4,2) DEFAULT 1.0,
+    rating_weight DECIMAL(4,2) DEFAULT 0.7,
+    experience_weight DECIMAL(4,2) DEFAULT 0.5,
+    previous_client_weight DECIMAL(4,2) DEFAULT 0.3,
+    response_time_weight DECIMAL(4,2) DEFAULT 0.8,
+    cost_efficiency_weight DECIMAL(4,2) DEFAULT 0.4,
+    
+    -- Service type specific weights
+    service_type service_type NOT NULL,
+    urgency_level urgency_level_enum NOT NULL DEFAULT 'normal',
+    
+    -- Configuration metadata
+    created_by UUID REFERENCES users(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    effective_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    effective_until TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TYPE urgency_level_enum AS ENUM ('low', 'normal', 'high', 'urgent', 'emergency');
+
+-- Matching Results Tracking Table
+CREATE TABLE interpreter_match_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    
+    -- Algorithm results
+    algorithm_version VARCHAR NOT NULL DEFAULT '1.0',
+    total_candidates_evaluated INTEGER NOT NULL,
+    matching_criteria_used JSONB NOT NULL,
+    
+    -- Top matches
+    recommended_interpreter_id UUID REFERENCES users(id),
+    match_score DECIMAL(5,2) NOT NULL,
+    match_confidence DECIMAL(5,2) NOT NULL,
+    alternative_matches JSONB, -- Array of {interpreter_id, score, reasons}
+    
+    -- Final assignment
+    actually_assigned_interpreter_id UUID REFERENCES users(id),
+    assignment_method assignment_method_enum NOT NULL,
+    admin_override_reason TEXT,
+    
+    -- Performance tracking
+    time_to_match_ms INTEGER NOT NULL,
+    assignment_accepted BOOLEAN,
+    client_satisfaction_rating DECIMAL(3,1),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TYPE assignment_method_enum AS ENUM ('algorithm', 'manual_admin', 'interpreter_self_select', 'client_request');
+
+-- Indexes for new tables
+CREATE INDEX idx_dynamic_pricing_service_lang ON dynamic_pricing_configs(service_type, language_from, language_to);
+CREATE INDEX idx_dynamic_pricing_effective ON dynamic_pricing_configs(effective_from, effective_until);
+CREATE INDEX idx_rate_calculations_request ON rate_calculations(request_id);
+CREATE INDEX idx_video_quality_session ON video_call_quality_metrics(session_id);
+CREATE INDEX idx_video_quality_recorded_at ON video_call_quality_metrics(recorded_at);
+CREATE INDEX idx_document_processing_status ON document_processing_jobs(processing_status);
+CREATE INDEX idx_document_processing_request ON document_processing_jobs(request_id);
+CREATE INDEX idx_performance_benchmarks_type ON performance_benchmarks(benchmark_type);
+CREATE INDEX idx_performance_benchmarks_component ON performance_benchmarks(service_component);
+CREATE INDEX idx_revenue_recognition_request ON revenue_recognition(request_id);
+CREATE INDEX idx_revenue_recognition_period ON revenue_recognition(accounting_period);
+CREATE INDEX idx_interpreter_availability_user ON interpreter_availability_matrix(interpreter_id);
+CREATE INDEX idx_interpreter_availability_time ON interpreter_availability_matrix(day_of_week, start_time, end_time);
+CREATE INDEX idx_matching_weights_service ON interpreter_matching_weights(service_type, urgency_level);
+CREATE INDEX idx_match_results_request ON interpreter_match_results(request_id);
+CREATE INDEX idx_match_results_interpreter ON interpreter_match_results(recommended_interpreter_id);
+```

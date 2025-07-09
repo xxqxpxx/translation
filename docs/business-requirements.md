@@ -36,7 +36,7 @@ ELS provides comprehensive translation services building on their established ex
   - Rush: Same day (up to 500 words, subject to availability)
   - Official Documents: 2-3 business days with certification
 - **Quality Standards**: Professional translation with proofreading, CIC-approved certification for official documents
-- **Sight Translation**: Instant oral conversion of written material during interpretation sessions
+
 
 #### Pricing Structure
 ```
@@ -78,14 +78,8 @@ ELS offers the following interpretation services, all following English/French â
 - Pediatric special needs and mental disability programs
 - Retirement and long-term care facilities
 
-##### Group Interpretation  
-**Service Description**: Similar to in-person but with multiple clients present throughout session (group activities, information sessions, workshops). Consecutive or simultaneous mode available.
-
 ##### Conference-Telephone Interpreting
 **Service Description**: Remote interpretation when agency, interpreter, and client engage from different locations at agreed time.
-
-##### Message Relay Service
-**Service Description**: Brief message communication or information retrieval between agency and non-English speaking client.
 
 #### Service Rates
 

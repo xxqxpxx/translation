@@ -58,26 +58,16 @@ Interpretation Services:
 │   ├── Business meetings and conferences
 │   ├── Pediatric and special needs support
 │   └── Retirement and long-term care facilities
-├── Group Interpretation
-│   ├── Information sessions and workshops
-│   ├── Group activities and programs
-│   ├── Seminars and conferences
-│   └── Community meetings
 ├── Conference-Telephone Interpreting
 │   ├── Remote business meetings
 │   ├── Medical consultations
 │   ├── Legal proceedings
 │   └── Multi-party conferences
-├── Instant Virtual Interpretation (NEW)
-│   ├── 24/7 emergency availability
-│   ├── HD video calling
-│   ├── Immediate connection within minutes
-│   └── Perfect for urgent situations
-└── Message Relay Service
-    ├── Brief message communication
-    ├── Information retrieval
-    ├── Appointment confirmations
-    └── Quick clarifications
+└── Instant Virtual Interpretation (NEW)
+    ├── 24/7 emergency availability
+    ├── HD video calling
+    ├── Immediate connection within minutes
+    └── Perfect for urgent situations
 ```
 
 #### Translation Services
