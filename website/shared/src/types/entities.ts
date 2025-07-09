@@ -239,4 +239,212 @@ export interface Document {
   isPdf?: boolean;
   isDocument?: boolean;
   canPreview?: boolean;
+}
+
+// Interpreter Service Types
+export enum InterpreterStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING_APPROVAL = 'pending_approval',
+  SUSPENDED = 'suspended',
+}
+
+export enum InterpreterSpecialization {
+  MEDICAL = 'medical',
+  LEGAL = 'legal',
+  BUSINESS = 'business',
+  TECHNICAL = 'technical',
+  ACADEMIC = 'academic',
+  GOVERNMENT = 'government',
+  CONFERENCE = 'conference',
+  COMMUNITY = 'community',
+  GENERAL = 'general',
+}
+
+export enum SessionType {
+  IN_PERSON = 'in_person',
+  PHONE = 'phone',
+  VIDEO = 'video',
+}
+
+export enum AvailabilityStatus {
+  AVAILABLE = 'available',
+  BUSY = 'busy',
+  BREAK = 'break',
+  OFFLINE = 'offline',
+}
+
+export enum InterpreterSessionStatus {
+  REQUESTED = 'requested',
+  CONFIRMED = 'confirmed',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  NO_SHOW = 'no_show',
+  RESCHEDULED = 'rescheduled',
+}
+
+export enum CancellationReason {
+  CLIENT_REQUEST = 'client_request',
+  INTERPRETER_UNAVAILABLE = 'interpreter_unavailable',
+  TECHNICAL_ISSUES = 'technical_issues',
+  EMERGENCY = 'emergency',
+  NO_SHOW = 'no_show',
+  OTHER = 'other',
+}
+
+export interface LanguageProficiency {
+  language: string;
+  proficiencyLevel: 'native' | 'fluent' | 'advanced' | 'intermediate';
+  certifications: string[];
+}
+
+export interface AvailabilitySchedule {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  timezone: string;
+}
+
+export interface RateStructure {
+  hourlyRate: number;
+  minimumHours: number;
+  sessionTypes: {
+    [key in SessionType]: {
+      rate: number;
+      minimumDuration: number;
+    };
+  };
+  specializations: {
+    [key in InterpreterSpecialization]?: {
+      multiplier: number;
+    };
+  };
+}
+
+export interface SessionLocation {
+  type: 'address' | 'online' | 'phone';
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    additionalInfo?: string;
+  };
+  meetingUrl?: string;
+  phoneNumber?: string;
+  accessCode?: string;
+}
+
+export interface SessionRequirements {
+  subjectMatter: string;
+  documents?: string[];
+  specialInstructions?: string;
+  technicalTerminology?: string[];
+  culturalConsiderations?: string;
+  dresscode?: 'business' | 'casual' | 'formal';
+}
+
+export interface SessionRating {
+  overall: number; // 1-5 stars
+  punctuality: number;
+  professionalism: number;
+  accuracy: number;
+  communication: number;
+  comment?: string;
+  ratedAt: Date;
+}
+
+export interface Interpreter {
+  id: string;
+  user: User;
+  userId: string;
+  status: InterpreterStatus;
+  languages: LanguageProficiency[];
+  specializations: InterpreterSpecialization[];
+  supportedSessionTypes: SessionType[];
+  rateStructure: RateStructure;
+  weeklySchedule?: AvailabilitySchedule[];
+  currentAvailabilityStatus: AvailabilityStatus;
+  bio?: string;
+  certifications?: {
+    name: string;
+    issuingBody: string;
+    dateIssued: Date;
+    expiryDate?: Date;
+    credentialId?: string;
+  }[];
+  workExperience?: {
+    company: string;
+    position: string;
+    startDate: Date;
+    endDate?: Date;
+    description: string;
+  }[];
+  portfolioUrl?: string;
+  linkedinUrl?: string;
+  totalSessionsCompleted: number;
+  averageRating: number;
+  totalRatings: number;
+  totalEarnings: number;
+  isVerified: boolean;
+  backgroundCheckCompleted: boolean;
+  backgroundCheckDate?: Date;
+  lastActiveDate?: Date;
+  preferredClients?: string[];
+  blockedClients?: string[];
+  sessions: InterpreterSession[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InterpreterSession {
+  id: string;
+  client: User;
+  clientId: string;
+  interpreter: Interpreter;
+  interpreterId: string;
+  status: InterpreterSessionStatus;
+  sessionType: SessionType;
+  specialization: InterpreterSpecialization;
+  sourceLanguage: string;
+  targetLanguage: string;
+  scheduledStartTime: Date;
+  scheduledEndTime: Date;
+  actualStartTime?: Date;
+  actualEndTime?: Date;
+  estimatedDuration: number;
+  actualDuration?: number;
+  location: SessionLocation;
+  requirements?: SessionRequirements;
+  hourlyRate: number;
+  totalCost: number;
+  additionalFees: number;
+  isPaid: boolean;
+  paidAt?: Date;
+  paymentId?: string;
+  clientRating?: SessionRating;
+  interpreterRating?: SessionRating;
+  sessionNotes?: string;
+  cancellationReason?: string;
+  cancellationCategory?: CancellationReason;
+  cancelledAt?: Date;
+  cancelledBy?: string;
+  recordingUrl?: string;
+  recordingPermitted: boolean;
+  participants?: {
+    name: string;
+    role: string;
+    email?: string;
+  }[];
+  isRescheduled: boolean;
+  originalSessionId?: string;
+  rescheduledSessionId?: string;
+  rescheduledCount: number;
+  requiresFollowUp: boolean;
+  followUpNotes?: string;
+  followUpDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 } 
