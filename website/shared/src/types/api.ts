@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import {
+  Translation,
+  TranslationStatus,
+  TranslationType,
+  UrgencyLevel,
+  Document,
+  DocumentType,
+  DocumentStatus,
+} from './entities';
 
 // Standardized API Response Interface
 export interface ApiResponse<T = any> {
@@ -167,6 +176,162 @@ export function isSuccessResponse<T>(response: ApiResponse<T>): response is ApiR
   return response.success === true && response.data !== undefined;
 }
 
-export function isErrorResponse<T>(response: ApiResponse<T>): response is ApiResponse<T> & { success: false; error: NonNullable<ApiResponse<T>['error']> } {
-  return response.success === false && response.error !== undefined;
+// Translation API Types
+export interface CreateTranslationRequest {
+  title: string;
+  description?: string;
+  type: TranslationType;
+  urgencyLevel: UrgencyLevel;
+  sourceLanguage: string;
+  targetLanguage: string;
+  specialInstructions?: string;
+  requestedDeliveryDate?: Date;
+  requiresCertification?: boolean;
+  isConfidential?: boolean;
+}
+
+export interface UpdateTranslationRequest {
+  title?: string;
+  description?: string;
+  type?: TranslationType;
+  urgencyLevel?: UrgencyLevel;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  specialInstructions?: string;
+  requestedDeliveryDate?: Date;
+  requiresCertification?: boolean;
+  isConfidential?: boolean;
+  status?: TranslationStatus;
+  translatorId?: string;
+  reviewerId?: string;
+  clientFeedback?: string;
+  rating?: number;
+  internalNotes?: string;
+}
+
+export interface TranslationQuery {
+  status?: TranslationStatus[];
+  type?: TranslationType[];
+  urgencyLevel?: UrgencyLevel[];
+  sourceLanguage?: string[];
+  targetLanguage?: string[];
+  clientId?: string;
+  translatorId?: string;
+  search?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  isOverdue?: boolean;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface TranslationListResponse {
+  translations: Translation[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface TranslationStatistics {
+  totalProjects: number;
+  pendingProjects: number;
+  inProgressProjects: number;
+  completedProjects: number;
+  overdueProjects: number;
+}
+
+// Document API Types
+export interface CreateDocumentRequest {
+  translationId: string;
+  type: DocumentType;
+  description?: string;
+}
+
+export interface UpdateDocumentRequest {
+  type?: DocumentType;
+  status?: DocumentStatus;
+  description?: string;
+  processingNotes?: string;
+  language?: string;
+}
+
+export interface DocumentStatistics {
+  totalDocuments: number;
+  sourceDocuments: number;
+  translatedDocuments: number;
+  totalFileSize: number;
+  totalWordCount: number;
+}
+
+// Pricing API Types
+export interface PricingRequest {
+  wordCount: number;
+  sourceLanguage: string;
+  targetLanguage: string;
+  urgencyLevel: UrgencyLevel;
+  type: TranslationType;
+  requiresCertification?: boolean;
+}
+
+export interface PricingResult {
+  baseRatePerWord: number;
+  ratePerWord: number;
+  wordCount: number;
+  subtotal: number;
+  urgencyMultiplier: number;
+  typeMultiplier: number;
+  certificationFee: number;
+  totalCost: number;
+  currency: string;
+  breakdown: PricingBreakdown;
+}
+
+export interface PricingBreakdown {
+  baseTranslation: number;
+  urgencyFee: number;
+  specialtyFee: number;
+  certificationFee: number;
+  total: number;
+}
+
+export interface LanguagePairInfo {
+  tier: string;
+  baseRate: number;
+  complexity: string;
+}
+
+export interface UrgencyInfo {
+  multiplier: number;
+  deliveryDays: number;
+  description: string;
+}
+
+export interface TypeInfo {
+  multiplier: number;
+  description: string;
+  requirements: string[];
+}
+
+// File Upload Types
+export interface FileUploadResponse {
+  documents: Document[];
+}
+
+export interface SupportedFileTypes {
+  mimeTypes: string[];
+  extensions: string[];
+  maxFileSize: number;
+}
+
+export interface SupportedLanguage {
+  code: string;
+  name: string;
+}
+
+// Download Types
+export interface DownloadUrlResponse {
+  url: string;
+  expiresAt: Date;
 } 

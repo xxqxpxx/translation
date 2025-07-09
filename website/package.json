@@ -1,68 +1,62 @@
 {
   "name": "lingualink-platform",
   "version": "1.0.0",
-  "description": "Multi-tenant translation and interpretation platform with white-label capabilities",
+  "description": "Modern translation and interpretation platform with single-tenant deployments",
   "private": true,
   "workspaces": [
-    "backend",
     "frontend",
+    "backend",
     "shared"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run start:dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "build:shared": "cd shared && npm run build",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "cd backend && npm run test",
-    "test:frontend": "cd frontend && npm run test",
-    "test:e2e": "cd backend && npm run test:e2e",
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "lint:backend": "cd backend && npm run lint",
-    "lint:frontend": "cd frontend && npm run lint",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "build": "npm run build --workspaces",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "test": "npm run test --workspaces",
+    "test:frontend": "npm run test --workspace=frontend",
+    "test:backend": "npm run test --workspace=backend",
+    "test:e2e": "npm run test:e2e --workspace=frontend",
+    "lint": "npm run lint --workspaces",
+    "lint:fix": "npm run lint:fix --workspaces",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "setup": "npm install && npm run setup --workspaces",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "typecheck": "npm run typecheck --workspaces",
+    "db:migrate": "npm run migration:run --workspace=backend",
+    "db:seed": "npm run seed --workspace=backend",
+    "db:reset": "npm run migration:revert --workspace=backend && npm run migration:run --workspace=backend",
     "docker:dev": "docker-compose up -d",
-    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
     "docker:down": "docker-compose down",
-    "setup": "npm install && npm run setup:backend && npm run setup:frontend && npm run setup:shared",
-    "setup:backend": "cd backend && npm install",
-    "setup:frontend": "cd frontend && npm install", 
-    "setup:shared": "cd shared && npm install"
+    "docker:reset": "docker-compose down -v && docker-compose up -d",
+    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend && npm install --workspace=shared"
   },
   "devDependencies": {
+    "@types/node": "^20.10.5",
     "concurrently": "^8.2.2",
-    "prettier": "^3.0.3",
-    "@typescript-eslint/eslint-plugin": "^6.7.4",
-    "@typescript-eslint/parser": "^6.7.4",
-    "eslint": "^8.50.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^14.0.1"
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
-  "author": "Exchange Language Services Inc.",
+  "keywords": [
+    "translation",
+    "interpretation",
+    "platform",
+    "single-tenant",
+    "react",
+    "nestjs",
+    "typescript",
+    "postgresql"
+  ],
+  "author": "ELS Development Team <dev@exls.ca>",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "https://github.com/els/lingualink-platform.git"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
+    "url": "https://github.com/your-org/lingualink-platform"
   }
 } 

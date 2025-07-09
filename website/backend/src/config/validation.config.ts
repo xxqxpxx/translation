@@ -1,0 +1,1 @@
+export const ValidationConfig = null; // Basic config for now, will implement proper validation after package installation 

@@ -1,0 +1,1 @@
+This is a sample document for translation testing. It contains multiple sentences to test word counting and text extraction functionality.

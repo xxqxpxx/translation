@@ -5,17 +5,21 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: lingualink-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: lingualink_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/database/init:/docker-entrypoint-initdb.d
+      - ./backend/src/database/init:/docker-entrypoint-initdb.d
+    networks:
+      - lingualink-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lingualink_dev"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -24,11 +28,13 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lingualink-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    networks:
+      - lingualink-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -41,13 +47,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: lingualink-backend
+    restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/lingualink_dev
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/lingualink_dev
       - REDIS_URL=redis://redis:6379
       - PORT=3001
+      - API_PREFIX=api
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -56,16 +64,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - ./backend/.env.development
+    networks:
+      - lingualink-network
     command: npm run start:dev
 
-  # Frontend React App (Development)
+  # Frontend Web App (Development)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: lingualink-frontend
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
@@ -76,36 +85,55 @@ services:
       - /app/node_modules
     depends_on:
       - backend
-    env_file:
-      - ./frontend/.env.development
+    networks:
+      - lingualink-network
     command: npm run dev
 
-  # Adminer (Database Management)
-  adminer:
-    image: adminer:latest
-    container_name: lingualink-adminer
+  # Database Admin (Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: lingualink-pgadmin
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@lingualink.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     depends_on:
       - postgres
+    networks:
+      - lingualink-network
+    profiles:
+      - tools
 
-  # Redis Commander (Redis Management)
+  # Redis Commander (Optional)
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: lingualink-redis-commander
-    environment:
-      - REDIS_HOSTS=local:redis:6379
+    restart: unless-stopped
     ports:
       - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
     depends_on:
       - redis
+    networks:
+      - lingualink-network
+    profiles:
+      - tools
+
+networks:
+  lingualink-network:
+    driver: bridge
+    name: lingualink-network
 
 volumes:
   postgres_data:
-    driver: local
+    name: lingualink-postgres-data
   redis_data:
-    driver: local
-
-networks:
-  default:
-    name: lingualink-network 
+    name: lingualink-redis-data
+  pgadmin_data:
+    name: lingualink-pgadmin-data 

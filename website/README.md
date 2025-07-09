@@ -1,158 +1,376 @@
-# LinguaLink Platform 🌐
+# LinguaLink Platform
 
-> **Multi-tenant translation and interpretation platform with white-label capabilities**
+> **Modern Translation & Interpretation Platform with Single-Tenant Deployments**
 
-A comprehensive three-sided marketplace platform for Exchange Language Services Inc. (ELS) connecting clients, interpreters/translators, and administrators. Built with modern technologies and designed for scalability, security, and multi-tenancy.
+## 🎯 Overview
 
-## 🚀 Features
+LinguaLink is a comprehensive platform for translation companies, providing dedicated deployments with complete customization for each customer. Built with React, NestJS, and PostgreSQL for enterprise-grade performance and security.
 
-### Core Services
-- **Translation Services** ($0.18-0.35 CAD/word)
-- **In-Person Interpretation** ($75-125 CAD/hour)
-- **Scheduled Phone Interpretation** ($75-100 CAD/hour)
-- **Instant Virtual Interpretation** ($2.50-3.85 CAD/minute)
+### Key Features
 
-### Platform Capabilities
-- ✅ **Multi-Tenant Architecture** - White-label ready
-- ✅ **Real-time Communication** - WebSocket-based chat and video
-- ✅ **Automated Matching** - AI-powered interpreter-client matching
-- ✅ **Document Management** - Secure file upload and processing
-- ✅ **Payment Processing** - Stripe integration with multiple currencies
-- ✅ **Mobile Ready** - Responsive design + future React Native app
-- ✅ **Compliance Ready** - PIPEDA, AODA, SOC 2, PCI DSS, ISO 27001
+- **🔐 Dedicated Deployments** - Each customer gets their own isolated instance
+- **🎨 Custom Branding** - Full UI customization with logos, colors, and themes  
+- **🌐 Translation Services** - Document translation with automated workflows
+- **🗣 Interpretation Services** - In-person, phone, and video interpretation
+- **💰 Payment Processing** - Integrated billing with Stripe
+- **📊 Analytics Dashboard** - Comprehensive reporting and insights
+- **📱 Responsive Design** - Works seamlessly on desktop and mobile
+- **🔒 Enterprise Security** - Data isolation, encryption, and compliance ready
 
-## 🛠 Technology Stack
+### Business Model
 
-### Backend
-- **Framework**: NestJS with TypeScript
-- **Database**: PostgreSQL with Supabase
-- **Authentication**: Clerk (JWT-based)
-- **Caching**: Redis
-- **Real-time**: WebSockets (Socket.io)
-- **Payments**: Stripe
-- **Email/SMS**: SendGrid & Twilio
+**Deployment Strategy**: One codebase deployed separately for each customer
+- Custom domain/subdomain for each client
+- Dedicated database and infrastructure
+- Personalized branding and configuration
+- Independent scaling and management
 
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **State Management**: Redux Toolkit + RTK Query
-- **UI Library**: Material-UI (MUI)
-- **Build Tool**: Vite
-- **Testing**: Jest + Cypress
+## 🏗 Architecture
 
-### Infrastructure
-- **Containerization**: Docker + Kubernetes
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: Winston + ELK Stack
+### Technology Stack
 
-## 🏗 Project Structure
+**Frontend**
+- React 18 + TypeScript
+- Material-UI (MUI) design system
+- Redux Toolkit for state management
+- Vite for fast development builds
+- Socket.io for real-time features
+
+**Backend**
+- NestJS with TypeScript
+- PostgreSQL database
+- Redis for caching
+- Clerk for authentication
+- Stripe for payments
+- SendGrid for emails
+
+**Infrastructure**
+- Docker containerization
+- Kubernetes orchestration
+- GitHub Actions CI/CD
+- Prometheus monitoring
+- ELK stack logging
+
+### Project Structure
 
 ```
 website/
-├── backend/          # NestJS API server
-├── frontend/         # React web application
-├── shared/           # Shared TypeScript types & utilities
-├── docs/            # Project documentation
-├── k8s/             # Kubernetes manifests
-└── scripts/         # Build and deployment scripts
+├── frontend/           # React 18 application
+├── backend/            # NestJS API server
+├── shared/             # Shared TypeScript types
+├── docs/              # Project documentation
+├── scripts/           # Automation scripts
+├── k8s/               # Kubernetes manifests
+└── docker-compose.yml # Local development
 ```
 
-## ⚡ Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js** 18+ 
-- **Docker** & Docker Compose
-- **Git**
 
-### 1. Clone & Setup
+- Node.js 18+
+- Docker & Docker Compose
+- PostgreSQL 15+
+- Redis 7+
+
+### Development Setup
+
+1. **Clone and Install**
+   ```bash
+   git clone <repository-url>
+   cd website
+   npm install
+   ```
+
+2. **Start Services**
+   ```bash
+   # Start PostgreSQL and Redis
+   docker-compose up -d postgres redis
+   
+   # Install dependencies
+   npm run install:all
+   ```
+
+3. **Configure Environment**
+   ```bash
+   # Backend environment
+   cp backend/env.template backend/.env.development
+   
+   # Frontend environment  
+   cp frontend/env.template frontend/.env.development
+   ```
+
+4. **Start Development Servers**
+   ```bash
+   # Start backend (http://localhost:3001)
+   npm run dev:backend
+   
+   # Start frontend (http://localhost:3000) 
+   npm run dev:frontend
+   ```
+
+### Production Deployment
+
+Each customer gets their own deployment:
+
 ```bash
-git clone <repository-url>
-cd website
+# Build production images
+npm run build:prod
 
-# Install all dependencies
-npm run setup
-
-# Copy environment templates
-cp backend/env.template backend/.env.development
-cp frontend/env.template frontend/.env.development
+# Deploy to customer subdomain
+kubectl apply -f k8s/customer-deployment.yaml
 ```
 
-### 2. Configure Environment Variables
+## 📖 Features
 
-**Backend** (`backend/.env.development`):
+### Core Services
+
+**Translation Management**
+- Document upload and processing
+- Multi-language support
+- Quality assurance workflows
+- Version control and revisions
+- Automated cost calculation
+
+**Interpretation Booking**
+- In-person interpreter scheduling
+- Phone interpretation services
+- Video conference integration
+- Interpreter matching algorithms
+- Session recording capabilities
+
+**User Management**
+- Client and interpreter profiles
+- Role-based access control
+- Availability management
+- Performance tracking
+- Communication tools
+
+### Business Features
+
+**Payment Processing**
+- Stripe integration
+- Automated invoicing
+- Usage-based billing
+- Payment tracking
+- Financial reporting
+
+**Analytics & Reporting**
+- Session analytics
+- Revenue tracking
+- User activity metrics
+- Performance dashboards
+- Export capabilities
+
+## 🎨 Customization
+
+### Per-Deployment Configuration
+
+Each customer deployment can be customized with:
+
+**Branding**
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lingualink_dev
+COMPANY_NAME="Your Translation Company"
+LOGO_URL="https://your-domain.com/logo.png"
+PRIMARY_COLOR="#1976d2"
+SECONDARY_COLOR="#dc004e"
+CUSTOM_DOMAIN="translate.yourcompany.com"
+```
+
+**Features**
+```env
+ENABLE_TRANSLATION=true
+ENABLE_IN_PERSON_INTERPRETATION=true
+ENABLE_PHONE_INTERPRETATION=true
+ENABLE_VIDEO_INTERPRETATION=true
+ENABLE_RECORDING=false
+ENABLE_ANALYTICS=true
+```
+
+**Pricing**
+```env
+TRANSLATION_RATE=0.25  # per word
+IN_PERSON_RATE=75      # per hour
+PHONE_RATE=85          # per hour
+VIDEO_RATE=3.50        # per minute
+CURRENCY=CAD
+```
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev              # Start both frontend and backend
+npm run dev:frontend     # Start React dev server
+npm run dev:backend      # Start NestJS dev server
+
+# Building
+npm run build            # Build both applications
+npm run build:frontend   # Build React for production
+npm run build:backend    # Build NestJS for production
+
+# Testing
+npm run test             # Run all tests
+npm run test:frontend    # Run React tests
+npm run test:backend     # Run NestJS tests
+npm run test:e2e         # Run end-to-end tests
+
+# Code Quality
+npm run lint             # Lint all code
+npm run lint:fix         # Fix linting issues
+npm run format           # Format code with Prettier
+
+# Database
+npm run db:migrate       # Run database migrations
+npm run db:seed          # Seed database with test data
+npm run db:reset         # Reset database
+```
+
+### Environment Variables
+
+#### Backend (.env)
+```env
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/lingualink
 REDIS_URL=redis://localhost:6379
-CLERK_SECRET_KEY=your-clerk-secret-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
+
+# Authentication
+CLERK_SECRET_KEY=sk_test_...
+JWT_SECRET=your-32-character-secret
+
+# Payments
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Communications
+SENDGRID_API_KEY=SG...
+FROM_EMAIL=noreply@lingualink.com
+
+# Application
+NODE_ENV=development
+PORT=3001
+API_PREFIX=api
 ```
 
-**Frontend** (`frontend/.env.development`):
+#### Frontend (.env)
 ```env
+# API Configuration
 VITE_API_URL=http://localhost:3001
-VITE_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
-VITE_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+VITE_WS_URL=ws://localhost:3001
+
+# Authentication
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+
+# Payments
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Application
+VITE_APP_NAME=LinguaLink
+VITE_APP_VERSION=1.0.0
 ```
-
-### 3. Start Development Environment
-```bash
-# Start all services (PostgreSQL, Redis, API, Frontend)
-npm run docker:dev
-
-# Or start individually
-npm run dev:backend    # Backend on :3001
-npm run dev:frontend   # Frontend on :3000
-```
-
-### 4. Access the Application
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **API Documentation**: http://localhost:3001/api/docs
-- **Database Admin**: http://localhost:8080
-- **Redis Commander**: http://localhost:8081
 
 ## 🧪 Testing
 
+### Test Coverage
+
+- **Backend**: Unit tests with Jest (target >85% coverage)
+- **Frontend**: Component tests with React Testing Library
+- **E2E**: Integration tests with Cypress
+- **API**: Endpoint testing with Supertest
+
+### Running Tests
+
 ```bash
-# Run all tests
-npm test
+# Unit tests
+npm run test:unit
 
-# Backend tests with coverage
-npm run test:backend
+# Integration tests
+npm run test:integration  
 
-# Frontend tests with coverage
-npm run test:frontend
-
-# E2E tests
+# End-to-end tests
 npm run test:e2e
+
+# Test coverage report
+npm run test:coverage
 ```
+
+## 📊 Performance
+
+### Targets
+
+- **API Response Time**: <150ms average
+- **Page Load Time**: <2s first contentful paint
+- **Database Queries**: <50ms average
+- **File Upload**: Support up to 100MB
+- **Concurrent Users**: 1000+ per deployment
+
+### Monitoring
+
+- **Health Checks**: `/api/health` endpoints
+- **Metrics**: Prometheus monitoring
+- **Logging**: Structured logs with Winston
+- **Error Tracking**: Comprehensive error handling
+- **Performance**: APM monitoring
 
 ## 🚀 Deployment
 
-### Development
+### Customer Deployment Process
+
+1. **Infrastructure Setup**
+   ```bash
+   # Create customer namespace
+   kubectl create namespace customer-name
+   
+   # Deploy database
+   helm install postgres bitnami/postgresql -n customer-name
+   
+   # Deploy Redis
+   helm install redis bitnami/redis -n customer-name
+   ```
+
+2. **Application Deployment**
+   ```bash
+   # Configure customer environment
+   envsubst < k8s/configmap.template.yaml > k8s/customer-configmap.yaml
+   
+   # Deploy application
+   kubectl apply -f k8s/customer-deployment.yaml -n customer-name
+   ```
+
+3. **Domain Configuration**
+   ```bash
+   # Setup custom domain
+   kubectl apply -f k8s/customer-ingress.yaml -n customer-name
+   
+   # Configure SSL certificate
+   kubectl apply -f k8s/customer-certificate.yaml -n customer-name
+   ```
+
+### Scaling
+
+Each deployment can be scaled independently:
+
 ```bash
-# Start development environment
-npm run docker:dev
+# Scale backend pods
+kubectl scale deployment backend --replicas=3 -n customer-name
+
+# Scale frontend pods  
+kubectl scale deployment frontend --replicas=2 -n customer-name
 ```
 
-### Production
-```bash
-# Build all applications
-npm run build
+## 📄 API Documentation
 
-# Deploy to production
-npm run docker:prod
-```
+### Swagger Documentation
 
-### Kubernetes
-```bash
-# Deploy to Kubernetes cluster
-kubectl apply -f k8s/
-```
+Interactive API documentation available at:
+- **Development**: http://localhost:3001/api/docs
+- **Production**: https://customer.lingualink.com/api/docs
 
-## 📖 API Documentation
+### API Response Format
 
-The API follows a standardized response format with comprehensive error handling:
+All endpoints return standardized responses:
 
 ```typescript
 interface ApiResponse<T> {
@@ -163,7 +381,7 @@ interface ApiResponse<T> {
     message: string;
     details?: any;
   };
-  meta?: {
+  meta: {
     timestamp: string;
     version: string;
     requestId: string;
@@ -172,161 +390,80 @@ interface ApiResponse<T> {
 }
 ```
 
-### Key Endpoints
-- `GET /api/v1/health` - Health check
-- `POST /api/v1/auth/login` - User authentication
-- `GET /api/v1/requests` - Service requests
-- `POST /api/v1/sessions` - Create interpretation session
-- `POST /api/v1/payments` - Process payments
+## 🔒 Security
 
-## 🏢 Multi-Tenant Architecture
+### Security Features
 
-The platform supports white-label deployments with:
+- **Authentication**: Clerk-based JWT authentication
+- **Authorization**: Role-based access control
+- **Data Protection**: Encryption at rest and in transit
+- **Input Validation**: Comprehensive request validation
+- **Rate Limiting**: API endpoint protection
+- **CORS**: Configurable cross-origin policies
+- **Security Headers**: Helmet.js protection
 
-### Tenant Isolation
-- **Database**: Row-Level Security (RLS) policies
-- **Caching**: Tenant-aware Redis keys
-- **File Storage**: Isolated storage buckets
+### Compliance
 
-### Customization Options
-- **Branding**: Custom logos, colors, themes
-- **Domain**: Custom domains (client.com)
-- **Features**: Per-tenant feature flags
-- **Pricing**: Configurable pricing models
+- **PIPEDA**: Canadian privacy law compliance
+- **GDPR**: European data protection ready
+- **AODA**: Ontario accessibility standards
+- **SOC 2**: Security framework compliance
+- **ISO 27001**: Information security management
 
-### Subscription Tiers
-- **Starter**: $99/month - 10 users, basic features
-- **Professional**: $299/month - 50 users, advanced features
-- **Enterprise**: $999/month - Unlimited users, all features
+## 💰 Pricing
 
-## 🔒 Security & Compliance
+### Setup Costs
+- **Basic Setup**: $2,000 - $5,000
+- **Custom Branding**: $1,000 - $3,000
+- **Data Migration**: $1,000 - $3,000
+- **Advanced Features**: $2,000 - $5,000
 
-### Security Measures
-- JWT-based authentication with Clerk
-- AES-256-GCM encryption for sensitive data
-- Rate limiting (100 requests/minute)
-- Input validation and sanitization
-- HTTPS everywhere with SSL certificates
+### Monthly Hosting
+- **Starter**: $199/month (up to 100 users)
+- **Professional**: $499/month (up to 500 users)  
+- **Enterprise**: $999/month (unlimited users)
+- **Custom**: Quote based on requirements
 
-### Compliance Standards
-- **PIPEDA** - Canadian privacy legislation
-- **AODA** - Ontario accessibility standards (WCAG 2.1 AA)
-- **SOC 2** - Security controls framework
-- **PCI DSS** - Payment card security
-- **ISO 27001** - Information security management
-
-## 📊 Performance Targets
-
-### Backend
-- API Response Time: <150ms average
-- Database Query Time: <50ms average
-- File Upload: Up to 100MB support
-- Concurrent Users: 1000+ simultaneous
-
-### Frontend
-- First Contentful Paint: <1.5s
-- Largest Contentful Paint: <2.5s
-- Time to Interactive: <3.0s
-- Bundle Size: <500KB gzipped
-
-## 🤝 Development Workflow
-
-### Git Strategy
-- `main` - Production-ready code
-- `develop` - Integration branch
-- `feature/*` - Feature development
-- `hotfix/*` - Critical fixes
-
-### Code Quality
-- **TypeScript** strict mode enabled
-- **ESLint** + Prettier configured
-- **Test coverage** >80% required
-- **Conventional commits** enforced
-
-## 📱 Mobile Development (Future)
-
-React Native app planned with:
-- Shared business logic from `shared/` package
-- Native features: push notifications, camera
-- Offline support for key features
-- App Store & Google Play deployment
-
-## 🔧 Useful Commands
-
-```bash
-# Development
-npm run dev                 # Start both frontend & backend
-npm run build              # Build all applications
-npm run test               # Run all tests
-npm run lint               # Lint all code
-npm run format             # Format all code
-
-# Docker
-npm run docker:dev         # Start development containers
-npm run docker:prod        # Start production containers
-npm run docker:down        # Stop all containers
-
-# Database
-npm run migration:generate # Generate new migration
-npm run migration:run      # Run pending migrations
-npm run seed              # Seed database with test data
-```
-
-## 📚 Documentation
-
-- [Development Plan](./DEVELOPMENT_PLAN.md) - Comprehensive development roadmap
-- [White-Label Architecture](./docs/white-label-architecture.md) - Multi-tenant design
-- [API Documentation](./docs/backend-api.md) - Backend API specifications
-- [Testing Framework](./docs/testing-framework.md) - Testing strategies
-- [Production Deployment](./docs/production-deployment.md) - Deployment guides
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-**Docker containers won't start:**
-```bash
-docker-compose down -v
-docker system prune -f
-npm run docker:dev
-```
-
-**Database connection issues:**
-```bash
-# Check if PostgreSQL is running
-docker ps | grep postgres
-
-# Reset database
-docker-compose down postgres
-docker volume rm website_postgres_data
-npm run docker:dev
-```
-
-**Frontend build errors:**
-```bash
-# Clear node_modules and reinstall
-rm -rf frontend/node_modules
-cd frontend && npm install
-```
+### Additional Services
+- **Support & Maintenance**: $100-500/month
+- **Feature Development**: $100-150/hour
+- **Training & Onboarding**: $1,000-3,000
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Development Workflow
 
-## 📄 License
+1. Create feature branch: `git checkout -b feature/description`
+2. Follow coding standards: `npm run lint`
+3. Add tests: `npm run test`
+4. Update documentation
+5. Submit pull request
 
-This project is licensed under the UNLICENSED License - see the [LICENSE](LICENSE) file for details.
+### Code Standards
 
-## 🏢 About Exchange Language Services Inc.
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Airbnb configuration
+- **Prettier**: Automated formatting
+- **Conventional Commits**: Standardized commit messages
+- **Test Coverage**: Minimum 80% required
 
-Exchange Language Services Inc. (ELS) is a leading provider of translation and interpretation services in Canada, committed to breaking down language barriers and fostering inclusive communication.
+## 📞 Support
+
+### Documentation
+
+- **Development Guide**: `/docs/development.md`
+- **Deployment Guide**: `/docs/deployment.md`
+- **API Reference**: `/docs/api.md`
+- **User Manual**: `/docs/user-guide.md`
+
+### Contact
+
+- **Email**: dev@exls.ca
+- **Documentation**: [GitHub Wiki](link-to-wiki)
+- **Issues**: [GitHub Issues](link-to-issues)
 
 ---
 
-**Made with ❤️ by the ELS Development Team**
+**Built with ❤️ for the translation industry**
 
-For support, email: dev@exls.ca 
+*Empowering translation companies with dedicated, scalable platforms* 
