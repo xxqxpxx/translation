@@ -21,6 +21,7 @@ import { HealthModule } from '@/health/health.module';
 import { CommonModule } from '@/common/common.module';
 import { TranslationsModule } from '@/translations/translations.module';
 import { InterpretersModule } from './interpreters/interpreters.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { InterpretersModule } from './interpreters/interpreters.module';
     NotificationsModule,
     AnalyticsModule,
     InterpretersModule,
+    RealtimeModule,
   ],
   controllers: [],
   providers: [],

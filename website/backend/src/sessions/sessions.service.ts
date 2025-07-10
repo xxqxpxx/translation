@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan, LessThan } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InterpreterSession, InterpreterSessionStatus, CancellationReason, SessionLocation, SessionRequirements, SessionRating } from './entities/interpreter-session.entity';
 import { Interpreter, SessionType, InterpreterSpecialization } from '../interpreters/entities/interpreter.entity';
 import { User, UserRole } from '../users/entities/user.entity';
@@ -71,6 +72,7 @@ export class SessionsService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private interpretersService: InterpretersService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async createSession(createSessionDto: CreateSessionDto): Promise<InterpreterSession> {
@@ -165,7 +167,9 @@ export class SessionsService {
       isPaid: false,
     });
 
-    return this.sessionRepository.save(session);
+    const savedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.created', savedSession);
+    return savedSession;
   }
 
   async findAll(filters: SessionFilterDto = {}): Promise<{ sessions: InterpreterSession[]; total: number }> {
@@ -278,7 +282,9 @@ export class SessionsService {
     }
 
     Object.assign(session, updateSessionDto);
-    return this.sessionRepository.save(session);
+    const updatedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.updated', updatedSession);
+    return updatedSession;
   }
 
   async updateStatus(id: string, status: InterpreterSessionStatus, userId: string): Promise<InterpreterSession> {
@@ -297,7 +303,9 @@ export class SessionsService {
       await this.interpretersService.update(interpreter.id, {}, userId);
     }
 
-    return this.sessionRepository.save(session);
+    const updatedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.status-updated', updatedSession);
+    return updatedSession;
   }
 
   async rescheduleSession(id: string, rescheduleDto: RescheduleSessionDto, userId: string): Promise<InterpreterSession> {
@@ -338,7 +346,9 @@ export class SessionsService {
       `${session.sessionNotes}\n\n${rescheduleNote}` : 
       rescheduleNote;
 
-    return this.sessionRepository.save(session);
+    const updatedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.rescheduled', updatedSession);
+    return updatedSession;
   }
 
   async cancelSession(id: string, cancelDto: CancelSessionDto, userId: string): Promise<InterpreterSession> {
@@ -362,7 +372,9 @@ export class SessionsService {
     session.cancelledAt = new Date();
     session.cancelledBy = userId;
 
-    return this.sessionRepository.save(session);
+    const updatedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.cancelled', updatedSession);
+    return updatedSession;
   }
 
   async addRating(id: string, rating: SessionRating, raterRole: 'client' | 'interpreter'): Promise<InterpreterSession> {
@@ -387,7 +399,9 @@ export class SessionsService {
       session.interpreterRating = { ...rating, ratedAt: new Date() };
     }
 
-    return this.sessionRepository.save(session);
+    const updatedSession = await this.sessionRepository.save(session);
+    this.eventEmitter.emit('session.rated', updatedSession);
+    return updatedSession;
   }
 
   async getUpcomingSessions(userId: string, role: UserRole): Promise<InterpreterSession[]> {

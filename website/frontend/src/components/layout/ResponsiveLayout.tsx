@@ -28,6 +28,7 @@ import {
   Settings,
   Logout,
   AccountCircle,
+  Language,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -54,6 +55,12 @@ const navigationItems: NavigationItem[] = [
     label: 'Requests',
     icon: <RequestPage />,
     path: '/requests',
+  },
+  {
+    id: 'interpreters',
+    label: 'Interpreters',
+    icon: <Person />,
+    path: '/interpreters',
   },
   {
     id: 'profile',

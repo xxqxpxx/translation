@@ -10,6 +10,7 @@ import ResponsiveLayout from './components/layout/ResponsiveLayout';
 // Page components (will be created later)
 import Dashboard from './pages/Dashboard';
 import Requests from './pages/Requests';
+import Interpreters from './pages/Interpreters';
 import Profile from './pages/Profile';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
@@ -131,6 +132,16 @@ const App: React.FC = () => {
                     <ProtectedRoute>
                       <AppLayout>
                         <Requests />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/interpreters"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Interpreters />
                       </AppLayout>
                     </ProtectedRoute>
                   }
