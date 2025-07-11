@@ -1,5 +1,4 @@
 import { apiClient } from './api';
-import { Invoice } from '../types/entities';
 
 export interface Invoice {
   id: string;
@@ -80,27 +79,27 @@ class InvoiceApiService {
     });
 
     const response = await apiClient.get(`${this.baseUrl}?${queryParams.toString()}`);
-    return response.data.data;
+    return (response.data as { data: InvoiceListResponse }).data;
   }
 
   async getInvoice(id: string): Promise<Invoice> {
     const response = await apiClient.get(`${this.baseUrl}/${id}`);
-    return response.data.data;
+    return (response.data as { data: Invoice }).data;
   }
 
   async createInvoice(invoice: CreateInvoiceRequest): Promise<Invoice> {
     const response = await apiClient.post(this.baseUrl, invoice);
-    return response.data.data;
+    return (response.data as { data: Invoice }).data;
   }
 
   async updateInvoice(id: string, updates: UpdateInvoiceRequest): Promise<Invoice> {
     const response = await apiClient.put(`${this.baseUrl}/${id}`, updates);
-    return response.data.data;
+    return (response.data as { data: Invoice }).data;
   }
 
   async updateInvoiceStatus(id: string, status: Invoice['status']): Promise<Invoice> {
     const response = await apiClient.patch(`${this.baseUrl}/${id}/status`, { status });
-    return response.data.data;
+    return (response.data as { data: Invoice }).data;
   }
 
   async deleteInvoice(id: string): Promise<void> {
@@ -125,7 +124,7 @@ class InvoiceApiService {
       responseType: 'blob',
     });
     
-    return response.data;
+    return response.data as Blob;
   }
 
   async generateInvoicePdf(id: string): Promise<Blob> {
@@ -133,7 +132,7 @@ class InvoiceApiService {
       responseType: 'blob',
     });
     
-    return response.data;
+    return response.data as Blob;
   }
 
   // Helper methods for calculations

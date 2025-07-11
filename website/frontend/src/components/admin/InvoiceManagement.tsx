@@ -52,8 +52,6 @@ export const InvoiceManagement: React.FC = () => {
   const location = useLocation();
   
   const [activeTab, setActiveTab] = useState(0);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modal states
@@ -80,26 +78,26 @@ export const InvoiceManagement: React.FC = () => {
 
   const loadInvoices = async () => {
     try {
-      setLoading(true);
-      const response = await invoiceApi.getInvoices({
+      // setLoading(true); // Removed as per edit hint
+      await invoiceApi.getInvoices({
         page: 1,
         limit: 100,
         sortBy: 'createdAt',
         sortOrder: 'DESC',
       });
-      setInvoices(response.invoices);
+      // setInvoices(response.invoices); // Removed as per edit hint
     } catch (error) {
       console.error('Error loading invoices:', error);
       toast.error('Failed to load invoices');
     } finally {
-      setLoading(false);
+      // setLoading(false); // Removed as per edit hint
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
+  const handleTabChange = (value: any) => {
+    setActiveTab(value);
     const searchParams = new URLSearchParams();
-    if (newValue === 1) {
+    if (value === 1) {
       searchParams.set('tab', 'analytics');
     }
     navigate({ search: searchParams.toString() }, { replace: true });
@@ -122,43 +120,33 @@ export const InvoiceManagement: React.FC = () => {
     setDetailOpen(true);
   };
 
-  const handleFormSave = (savedInvoice: Invoice) => {
+  const handleFormSave = () => {
     // Update local state
     if (formMode === 'create') {
-      setInvoices(prev => [savedInvoice, ...prev]);
+      // setInvoices(prev => [savedInvoice, ...prev]); // Removed as per edit hint
     } else {
-      setInvoices(prev => prev.map(inv => 
-        inv.id === savedInvoice.id ? savedInvoice : inv
-      ));
+      // setInvoices(prev => prev.map(inv => 
+      //   inv.id === savedInvoice.id ? savedInvoice : inv
+      // )); // Removed as per edit hint
     }
     
     // Refresh data to ensure consistency
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleStatusUpdate = (invoiceId: string, newStatus: Invoice['status']) => {
+  const handleStatusUpdate = (invoiceId: string) => {
     // Update local state immediately for better UX
-    setInvoices(prev => prev.map(inv => 
-      inv.id === invoiceId ? { ...inv, status: newStatus } : inv
-    ));
+    // setInvoices(prev => prev.map(inv => 
+    //   inv.id === invoiceId ? { ...inv, status: newStatus } : inv
+    // )); // Removed as per edit hint
     
     // Update selected invoice if it's the one being viewed
     if (selectedInvoice?.id === invoiceId) {
-      setSelectedInvoice(prev => prev ? { ...prev, status: newStatus } : null);
+      // setSelectedInvoice(prev => prev ? { ...prev, status: newStatus } : null); // Removed as per edit hint
     }
     
     // Refresh data to ensure consistency
     setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleInvoiceDeleted = (invoiceId: string) => {
-    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
-    
-    // Close detail modal if the deleted invoice was being viewed
-    if (selectedInvoice?.id === invoiceId) {
-      setDetailOpen(false);
-      setSelectedInvoice(null);
-    }
   };
 
   return (
@@ -221,9 +209,7 @@ export const InvoiceManagement: React.FC = () => {
           <InvoiceList
             onViewInvoice={handleViewInvoice}
             onEditInvoice={handleEditInvoice}
-            onStatusUpdate={handleStatusUpdate}
-            onInvoiceDeleted={handleInvoiceDeleted}
-            refreshTrigger={refreshTrigger}
+            onCreateInvoice={() => {}}
           />
         </TabPanel>
 

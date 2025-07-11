@@ -16,7 +16,6 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Divider,
   IconButton,
   Menu,
   MenuItem,

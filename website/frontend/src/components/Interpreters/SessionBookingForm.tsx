@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Phone, Video, User, AlertCircle, DollarSign } from 'lucide-react';
+import { User, DollarSign } from 'lucide-react';
 
 // Types from shared
 interface SessionLocation {
@@ -72,14 +72,14 @@ const SESSION_TYPES = [
     id: 'phone',
     name: 'Phone',
     description: 'Audio-only interpretation',
-    icon: Phone,
+    icon: User,
     baseRate: 0.9,
   },
   {
     id: 'video',
     name: 'Video Call',
     description: 'Remote video interpretation',
-    icon: Video,
+    icon: User,
     baseRate: 0.95,
   },
 ];

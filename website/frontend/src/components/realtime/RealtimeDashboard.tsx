@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
   Typography,
   Grid,
   Card,
@@ -9,17 +8,15 @@ import {
   CardHeader,
   List,
   ListItem,
-  ListItemText,
-  Chip,
   Button,
   Divider,
   Alert,
 } from '@mui/material';
 import {
-  OnlinePredicationOutlined as OnlineIcon,
   MessageOutlined as MessageIcon,
   NotificationsActiveOutlined as NotificationIcon,
   VideoCallOutlined as SessionIcon,
+  OnlinePredictionOutlined as OnlineIcon,
 } from '@mui/icons-material';
 import { useRealtime } from '../../contexts/RealtimeContext';
 import { ChatComponent } from './ChatComponent';

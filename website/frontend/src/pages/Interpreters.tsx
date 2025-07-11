@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MapPin, Star, Languages, Shield } from 'lucide-react';
+import { Search, Filter, Languages } from 'lucide-react';
 import { InterpreterCard } from '../components/Interpreters/InterpreterCard';
 import { SessionBookingForm } from '../components/Interpreters/SessionBookingForm';
 
@@ -97,7 +97,6 @@ interface InterpreterFilters {
 }
 
 const Interpreters: React.FC = () => {
-  const [interpreters, setInterpreters] = useState(mockInterpreters);
   const [filteredInterpreters, setFilteredInterpreters] = useState(mockInterpreters);
   const [filters, setFilters] = useState<InterpreterFilters>({
     search: '',
@@ -146,7 +145,7 @@ const Interpreters: React.FC = () => {
 
   // Apply filters
   useEffect(() => {
-    let filtered = [...interpreters];
+    let filtered = [...mockInterpreters];
 
     // Search filter
     if (filters.search) {
@@ -222,7 +221,7 @@ const Interpreters: React.FC = () => {
     });
 
     setFilteredInterpreters(filtered);
-  }, [filters, interpreters]);
+  }, [filters]);
 
   const handleFilterChange = (key: keyof InterpreterFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -251,7 +250,7 @@ const Interpreters: React.FC = () => {
   };
 
   const handleViewProfile = (interpreterId: string) => {
-    const interpreter = interpreters.find(i => i.id === interpreterId);
+    const interpreter = mockInterpreters.find(i => i.id === interpreterId);
     if (interpreter) {
       setSelectedInterpreter(interpreter);
       // In real app, this would navigate to interpreter profile page
@@ -260,7 +259,7 @@ const Interpreters: React.FC = () => {
   };
 
   const handleBookSession = (interpreterId: string) => {
-    const interpreter = interpreters.find(i => i.id === interpreterId);
+    const interpreter = mockInterpreters.find(i => i.id === interpreterId);
     if (interpreter) {
       setSelectedInterpreter(interpreter);
       setShowBookingForm(true);
@@ -314,7 +313,7 @@ const Interpreters: React.FC = () => {
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          {filteredInterpreters.length} of {interpreters.length} interpreters
+          {filteredInterpreters.length} of {mockInterpreters.length} interpreters
         </div>
       </div>
 

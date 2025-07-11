@@ -3,7 +3,6 @@ import {
   IconButton,
   Badge,
   Menu,
-  MenuItem,
   Typography,
   Box,
   Divider,
@@ -31,15 +30,17 @@ interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   actionUrl?: string;
   timestamp: string;
-  isRead?: boolean;
 }
+
+type NotificationWithRead = Notification & { isRead?: boolean };
 
 export const NotificationCenter: React.FC = () => {
   const { notifications, markNotificationAsRead, markAllNotificationsAsRead } = useRealtime();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const notificationsWithRead = notifications as NotificationWithRead[];
+  const unreadCount = notificationsWithRead.filter(n => !n.isRead).length;
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -49,8 +50,8 @@ export const NotificationCenter: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
+  const handleNotificationClick = (notification: NotificationWithRead) => {
+    if (!notification['isRead']) {
       markNotificationAsRead(notification.id);
     }
     
@@ -143,7 +144,7 @@ export const NotificationCenter: React.FC = () => {
         <Divider />
 
         {/* Notifications List */}
-        {notifications.length === 0 ? (
+        {notificationsWithRead.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <NotificationsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
             <Typography variant="body2" color="text.secondary">
@@ -152,15 +153,15 @@ export const NotificationCenter: React.FC = () => {
           </Box>
         ) : (
           <List sx={{ p: 0, maxHeight: 360, overflow: 'auto' }}>
-            {notifications.slice(0, 10).map((notification) => (
+            {notificationsWithRead.slice(0, 10).map((notification) => (
               <ListItem
                 key={notification.id}
                 button
                 onClick={() => handleNotificationClick(notification)}
                 sx={{
-                  backgroundColor: notification.isRead ? 'transparent' : 'action.hover',
+                  backgroundColor: notification['isRead'] ? 'transparent' : 'action.hover',
                   borderLeft: 3,
-                  borderColor: notification.isRead ? 'transparent' : 'primary.main',
+                  borderColor: notification['isRead'] ? 'transparent' : 'primary.main',
                   '&:hover': {
                     backgroundColor: 'action.selected',
                   },
@@ -176,7 +177,7 @@ export const NotificationCenter: React.FC = () => {
                       <Typography
                         variant="subtitle2"
                         sx={{
-                          fontWeight: notification.isRead ? 'normal' : 'bold',
+                          fontWeight: notification['isRead'] ? 'normal' : 'bold',
                           flex: 1,
                         }}
                       >
@@ -232,7 +233,7 @@ export const NotificationCenter: React.FC = () => {
           </List>
         )}
 
-        {notifications.length > 10 && (
+        {notificationsWithRead.length > 10 && (
           <>
             <Divider />
             <Box sx={{ p: 1, textAlign: 'center' }}>

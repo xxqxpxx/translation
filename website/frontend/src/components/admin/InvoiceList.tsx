@@ -13,7 +13,6 @@ import {
   Chip,
   IconButton,
   Button,
-  TextField,
   MenuItem,
   FormControl,
   InputLabel,
@@ -26,13 +25,11 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Alert,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
-  Download as DownloadIcon,
   PictureAsPdf as PdfIcon,
   TableChart as CsvIcon,
   MoreVert as MoreIcon,
@@ -135,7 +132,7 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
     setStats(newStats);
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
     setFilters(prev => ({ ...prev, page: newPage + 1 }));
   };

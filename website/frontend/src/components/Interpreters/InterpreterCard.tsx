@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, Clock, Shield, Languages, Calendar } from 'lucide-react';
+import { Star, Clock, Shield, Languages, Calendar } from 'lucide-react';
 
 interface LanguageProficiency {
   language: string;
@@ -60,7 +60,7 @@ export const InterpreterCard: React.FC<InterpreterCardProps> = ({
   };
 
   const getSpecializationColor = (spec: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       medical: 'bg-red-50 text-red-700 border-red-200',
       legal: 'bg-blue-50 text-blue-700 border-blue-200',
       business: 'bg-green-50 text-green-700 border-green-200',
@@ -82,7 +82,7 @@ export const InterpreterCard: React.FC<InterpreterCardProps> = ({
   };
 
   const formatSessionTypes = (types: string[]) => {
-    const typeLabels = {
+    const typeLabels: Record<string, string> = {
       in_person: 'In-Person',
       phone: 'Phone',
       video: 'Video',
@@ -154,10 +154,10 @@ export const InterpreterCard: React.FC<InterpreterCardProps> = ({
               <h3 className="text-xl font-semibold text-gray-900 flex items-center">
                 {interpreter.user.firstName} {interpreter.user.lastName}
                 {interpreter.isVerified && (
-                  <Shield className="w-5 h-5 text-blue-500 ml-2" title="Verified Interpreter" />
+                  <Shield className="w-5 h-5 text-blue-500 ml-2" />
                 )}
                 {interpreter.backgroundCheckCompleted && (
-                  <Shield className="w-5 h-5 text-green-500 ml-1" title="Background Check Completed" />
+                  <Shield className="w-5 h-5 text-green-500 ml-1" />
                 )}
               </h3>
               <div className="flex items-center space-x-3 mt-1">

@@ -9,13 +9,13 @@ export const colors = {
     200: '#90caf9',
     300: '#64b5f6',
     400: '#42a5f5',
-    500: '#1976d2', // Main blue from navigation
-    600: '#1565c0',
-    700: '#0d47a1', // Darker navy blue
-    800: '#0d47a1',
-    900: '#0a3d91',
-    main: '#1976d2',
-    dark: '#0d47a1',
+    500: '#2B2A7B', // Updated main blue from ELS branding
+    600: '#23226a',
+    700: '#1c1a59', // Darker deep blue
+    800: '#18164d',
+    900: '#14123f',
+    main: '#2B2A7B', // Updated main
+    dark: '#1c1a59', // Updated dark
     light: '#42a5f5',
     contrastText: '#ffffff',
   },

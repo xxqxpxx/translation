@@ -6,6 +6,9 @@ import { ServiceRequest } from '../requests/entities/service-request.entity';
 import { Session } from '../sessions/entities/session.entity';
 import { Translation } from '../translations/entities/translation.entity';
 import { Document } from '../translations/entities/document.entity';
+import { Interpreter } from '../interpreters/entities/interpreter.entity';
+import { InterpreterSession } from '../sessions/entities/interpreter-session.entity';
+import { Invoice } from '../payments/entities/invoice.entity';
 
 @Injectable()
 export class DatabaseConfig implements TypeOrmOptionsFactory {
@@ -18,14 +21,8 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
     const databaseUrl = this.configService.get<string>('DATABASE_URL');
     
     if (!databaseUrl && nodeEnv === 'development') {
-      return {
-        type: 'sqlite',
-        database: './dev.db',
-        entities: [User, ServiceRequest, Session, Translation, Document],
-        synchronize: true,
-        logging: true,
-        autoLoadEntities: true,
-      };
+      // For development without DATABASE_URL, you need to provide one
+      throw new Error('DATABASE_URL is required. Please provide your Supabase connection string.');
     }
 
     return {
@@ -39,7 +36,7 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
       ssl: this.configService.get<boolean>('DATABASE_SSL', false)
         ? { rejectUnauthorized: false }
         : false,
-      entities: [User, ServiceRequest, Session, Translation, Document],
+      entities: [User, ServiceRequest, Session, Translation, Document, Interpreter, InterpreterSession, Invoice],
       migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
       synchronize: nodeEnv === 'development',
       logging: nodeEnv === 'development',

@@ -28,7 +28,6 @@ import {
   Settings,
   Logout,
   AccountCircle,
-  Language,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../contexts/AuthContext';

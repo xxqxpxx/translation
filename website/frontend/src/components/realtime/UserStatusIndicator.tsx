@@ -123,7 +123,7 @@ export const UserStatusIndicator: React.FC<UserStatusIndicatorProps> = ({
         <Chip
           icon={getStatusIcon(userStatus?.status || 'offline')}
           label={userStatus?.status || 'offline'}
-          size={size}
+          size={size === 'large' ? 'medium' : size}
           color={getStatusColor(userStatus?.status || 'offline') as any}
           variant="outlined"
         />

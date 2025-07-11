@@ -84,7 +84,6 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const { getToken, userId } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
   const [userStatuses, setUserStatuses] = useState<Map<string, UserStatus>>(new Map());
   const [messages, setMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -206,7 +205,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         socketInstance.on('session:updated', (update: SessionUpdate) => {
           sessionUpdateListeners.current.forEach(listener => listener(update));
           if (update.message) {
-            toast.info(update.message);
+            toast(update.message);
           }
         });
 
@@ -222,7 +221,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
               toast.error(message);
               break;
             default:
-              toast.info(message);
+              toast(message);
           }
         });
 
@@ -351,7 +350,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const value: RealtimeContextType = {
     isConnected,
     socket,
-    connectedUsers,
+    connectedUsers: [], // This will be updated by the backend
     userStatuses,
     messages,
     sendMessage,
